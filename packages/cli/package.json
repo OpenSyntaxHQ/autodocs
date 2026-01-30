@@ -1,5 +1,5 @@
 {
-  "name": "@opensyntaxhq/autodocs-cli",
+  "name": "@opensyntaxhq/autodocs",
   "version": "0.1.0",
   "bin": {
     "autodocs": "./dist/index.js"

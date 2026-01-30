@@ -1,4 +1,4 @@
-# @opensyntaxhq/autodocs-cli
+# @opensyntaxhq/autodocs
 
 The command-line interface for autodocs.
 
