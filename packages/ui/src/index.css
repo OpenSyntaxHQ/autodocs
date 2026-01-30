@@ -1,0 +1,70 @@
+:root {
+    --bg-color: #f9fafb;
+    --sidebar-bg: #ffffff;
+    --text-color: #111827;
+    --primary-color: #6366f1;
+    --border-color: #e5e7eb;
+}
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg-color);
+    color: var(--text-color);
+}
+
+.app-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: 250px;
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--border-color);
+    padding: 1rem;
+}
+
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+}
+
+.sidebar li {
+    padding: 0.5rem;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-bottom: 0.25rem;
+}
+
+.sidebar li:hover {
+    background: #f3f4f6;
+}
+
+.sidebar li.active {
+    background: #e0e7ff;
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+.content {
+    flex: 1;
+    padding: 2rem;
+}
+
+.type-view .code-block {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 1.5rem;
+    border-radius: 8px;
+    font-family: monospace;
+    margin-top: 1rem;
+    white-space: pre;
+}
+
+.keyword { color: #c084fc; }
+.type-name { color: #fbbf24; }
+.member-name { color: #93c5fd; }
+.member-type { color: #86efac; }
+.comment { color: #94a3b8; font-style: italic; }
+.member-row { padding-left: 1.5rem; }
