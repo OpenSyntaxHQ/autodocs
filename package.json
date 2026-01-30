@@ -1,0 +1,23 @@
+{
+  "name": "autodocs-monorepo",
+  "private": true,
+  "packageManager": "npm@11.7.0",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "test": "turbo run test"
+  },
+  "devDependencies": {
+    "turbo": "latest",
+    "prettier": "latest",
+    "eslint": "latest",
+    "typescript": "latest",
+    "@types/node": "latest"
+  },
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ]
+}
