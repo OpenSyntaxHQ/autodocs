@@ -1,6 +1,7 @@
 {
   "name": "autodocs-monorepo",
   "private": true,
+  "license": "Apache-2.0",
   "packageManager": "npm@11.7.0",
   "scripts": {
     "build": "turbo run build",
