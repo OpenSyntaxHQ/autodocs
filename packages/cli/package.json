@@ -1,0 +1,22 @@
+{
+  "name": "@opensyntaxhq/autodocs-cli",
+  "version": "0.1.0",
+  "bin": {
+    "autodocs": "./dist/index.js"
+  },
+  "dependencies": {
+    "@opensyntaxhq/autodocs-core": "*",
+    "commander": "^11.0.0",
+    "chalk": "^4.1.2",
+    "ora": "^5.4.1"
+  },
+  "devDependencies": {
+    "tsup": "latest",
+    "@types/node": "latest",
+    "typescript": "latest"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs",
+    "dev": "tsup src/index.ts --watch"
+  }
+}
