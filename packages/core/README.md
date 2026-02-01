@@ -1,9 +1,17 @@
 # @opensyntaxhq/autodocs-core
 
-The core parsing and generation engine for autodocs.
+Core parsing and extraction engine for Autodocs.
 
-## Exports
+## Installation
 
-- `parseTypescript(entryFile: string)`: Parses specific file and its dependencies
-- `extractDocs(program: ts.Program)`: Extracts documentation from the AST
-- `generateDocs(docs: DocEntry[])`: Generates the output format
+```bash
+npm install @opensyntaxhq/autodocs-core
+```
+
+## Usage
+
+```typescript
+import { VERSION } from '@opensyntaxhq/autodocs-core';
+
+console.log(VERSION);
+```

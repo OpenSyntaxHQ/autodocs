@@ -1,23 +1,33 @@
 {
   "name": "@opensyntaxhq/autodocs",
   "version": "0.1.0",
+  "description": "CLI for Autodocs documentation generator",
   "bin": {
     "autodocs": "./dist/index.js"
   },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs --dts",
+    "dev": "tsup src/index.ts --format cjs --watch",
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit",
+    "test": "jest",
+    "clean": "rm -rf dist"
+  },
   "dependencies": {
     "@opensyntaxhq/autodocs-core": "*",
-    "commander": "^11.0.0",
     "chalk": "^4.1.2",
+    "commander": "^12.0.0",
     "ora": "^5.4.1"
   },
   "devDependencies": {
-    "tsup": "latest",
-    "@types/node": "latest",
-    "typescript": "latest"
-  },
-  "scripts": {
-    "build": "tsup src/index.ts --format cjs",
-    "dev": "tsup src/index.ts --watch",
-    "lint": "eslint ."
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.11.0",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.6",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0"
   }
 }

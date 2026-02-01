@@ -1,9 +1,1 @@
-export function examplesPlugin() {
-  return {
-    name: 'autodocs-plugin-examples',
-    transform(code: string) {
-      // Implementation stub for extracting examples
-      return code;
-    }
-  };
-}
+export const PLUGIN_NAME = '@opensyntaxhq/autodocs-plugin-examples';

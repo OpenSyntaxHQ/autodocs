@@ -4,22 +4,49 @@ import globals from 'globals';
 
 export default tseslint.config(
   {
-    ignores: ['**/dist/**', '**/node_modules/**', '**/.turbo/**', '**/coverage/**', '**/.next/**'],
+    ignores: [
+      '**/dist/**',
+      '**/node_modules/**',
+      '**/.turbo/**',
+      '**/coverage/**',
+      '**/.next/**',
+      '**/build/**',
+    ],
   },
   js.configs.recommended,
-  ...tseslint.configs.recommended,
+  ...tseslint.configs.strictTypeChecked,
   {
-    files: ['**/*.{ts,tsx,js,jsx,mjs,cjs}'],
+    files: ['**/*.{ts,tsx,mts,cts}'],
     languageOptions: {
-      ecmaVersion: 2020,
+      ecmaVersion: 2022,
+      sourceType: 'module',
       globals: {
-        ...globals.browser,
         ...globals.node,
-        ...globals.jest,
+        ...globals.es2021,
+        ...globals.browser,
+      },
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
       },
     },
     rules: {
       '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
     },
   },
+  {
+    files: ['**/*.{js,mjs,cjs}'],
+    ...tseslint.configs.disableTypeChecked,
+  },
+  {
+    files: ['**/tests/**/*.ts', '**/*.test.ts', '**/*.spec.ts'],
+    rules: {
+    },
+  }
 );

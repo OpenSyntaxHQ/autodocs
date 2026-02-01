@@ -1,11 +1,15 @@
 # @opensyntaxhq/autodocs
 
-The command-line interface for autodocs.
+CLI for Autodocs documentation generator.
+
+## Installation
+
+```bash
+npm install -g @opensyntaxhq/autodocs
+```
 
 ## Usage
 
 ```bash
-npx autodocs init
-npx autodocs build
-npx autodocs serve
+autodocs --help
 ```

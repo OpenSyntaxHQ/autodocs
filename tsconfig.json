@@ -1,20 +1,31 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "target": "ES2022",
     "module": "ESNext",
-    "skipLibCheck": true,
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
+    "lib": ["ES2022"],
+    "moduleResolution": "Bundler",
     "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true,
-    "jsx": "react-jsx",
+    "allowJs": false,
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "esModuleInterop": true
-  }
+    "noUncheckedIndexedAccess": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "isolatedModules": true,
+    "baseUrl": ".",
+    "paths": {
+      "@opensyntaxhq/autodocs": ["packages/cli/src/index.ts"],
+      "@opensyntaxhq/autodocs-core": ["packages/core/src/index.ts"],
+      "@opensyntaxhq/autodocs-plugin-markdown": ["packages/plugins/markdown/src/index.ts"],
+      "@opensyntaxhq/autodocs-plugin-examples": ["packages/plugins/examples/src/index.ts"],
+      "@opensyntaxhq/*": ["packages/*/src/index.ts", "packages/plugins/*/src/index.ts"]
+    }
+  },
+  "exclude": ["node_modules", "dist", "build", ".turbo"]
 }
