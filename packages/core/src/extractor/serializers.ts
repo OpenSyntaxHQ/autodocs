@@ -181,6 +181,67 @@ export function serializeClass(
 
   const { line, character } = sourceFile.getLineAndCharacterOfPosition(declaration.getStart());
 
+  // Get type parameters
+  const typeParameters: TypeParameter[] = [];
+  if (declaration.typeParameters) {
+    for (const tp of declaration.typeParameters) {
+      typeParameters.push({
+        name: tp.name.text,
+        constraint: tp.constraint
+          ? typeToString(checker.getTypeFromTypeNode(tp.constraint), checker)
+          : undefined,
+        default: tp.default
+          ? typeToString(checker.getTypeFromTypeNode(tp.default), checker)
+          : undefined,
+      });
+    }
+  }
+
+  // Get heritage (extends/implements)
+  const heritage: Heritage[] = [];
+  if (declaration.heritageClauses) {
+    for (const clause of declaration.heritageClauses) {
+      for (const typeNode of clause.types) {
+        const heritageType = checker.getTypeAtLocation(typeNode);
+        const heritageSymbol = heritageType.getSymbol();
+        const kind = clause.token === ts.SyntaxKind.ExtendsKeyword ? 'extends' : 'implements';
+
+        heritage.push({
+          id: generateId(heritageSymbol?.getName() || 'unknown'),
+          name: heritageSymbol?.getName() || 'unknown',
+          kind,
+        });
+      }
+    }
+  }
+
+  // Get members
+  const members: Member[] = [];
+
+  // declaration.members is typically defined if it is a class declaration
+  for (const member of declaration.members) {
+    if (ts.isPropertyDeclaration(member) || ts.isMethodDeclaration(member)) {
+      const memberName = member.name.getText();
+      const memberSymbol = checker.getSymbolAtLocation(member.name);
+
+      if (!memberSymbol) continue;
+
+      // Skip private members
+      const isPrivate = member.modifiers?.some((m) => m.kind === ts.SyntaxKind.PrivateKeyword);
+      if (isPrivate) continue;
+
+      const memberType = checker.getTypeOfSymbolAtLocation(memberSymbol, member);
+
+      members.push({
+        name: memberName,
+        type: typeToString(memberType, checker),
+        optional: (memberSymbol.flags & ts.SymbolFlags.Optional) !== 0,
+        readonly: member.modifiers?.some((m) => m.kind === ts.SyntaxKind.ReadonlyKeyword) || false,
+        documentation: ts.displayPartsToString(memberSymbol.getDocumentationComment(checker)),
+      });
+    }
+  }
+
   return {
     id: generateId(symbol.getName()),
     name: symbol.getName(),
@@ -189,6 +250,9 @@ export function serializeClass(
     position: { line: line + 1, column: character },
     signature: `class ${symbol.getName()}`,
     documentation: getJSDocTags(symbol, checker),
+    typeParameters: typeParameters.length > 0 ? typeParameters : undefined,
+    heritage: heritage.length > 0 ? heritage : undefined,
+    members: members.length > 0 ? members : undefined,
   };
 }
 
