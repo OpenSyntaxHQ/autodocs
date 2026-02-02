@@ -115,14 +115,25 @@ export function registerBuild(program: Command): void {
         spinner.succeed(chalk.green(`Extracted ${docs.length.toString()} entries`));
         spinner.start('Generating documentation...');
 
-        // Write JSON output (Phase 3 will add HTML/Markdown generators)
-        const fs = await import('fs/promises');
-        await fs.mkdir(config.output.dir, { recursive: true });
-        await fs.writeFile(
-          path.join(config.output.dir, 'docs.json'),
-          JSON.stringify(docs, null, 2),
-          'utf-8'
-        );
+        // Generate documentation
+        switch (config.output.format) {
+          case 'json': {
+            const { generateJson } = await import('@opensyntaxhq/autodocs-core');
+            await generateJson(docs, config.output.dir, { pretty: true });
+            break;
+          }
+          case 'markdown': {
+            const { generateMarkdown } = await import('@opensyntaxhq/autodocs-core');
+            await generateMarkdown(docs, config.output.dir);
+            break;
+          }
+          case 'static':
+          default: {
+            const { generateHtml } = await import('@opensyntaxhq/autodocs-core');
+            await generateHtml(docs, config.output.dir);
+            break;
+          }
+        }
 
         spinner.succeed(chalk.green('Documentation generated!'));
 
