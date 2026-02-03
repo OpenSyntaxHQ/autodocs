@@ -11,6 +11,7 @@ export default tseslint.config(
       '**/coverage/**',
       '**/.next/**',
       '**/build/**',
+      'packages/ui/src/components/ui/**',
     ],
   },
   js.configs.recommended,
