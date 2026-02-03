@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
 import path from 'path';
+import fs from 'fs';
 
 interface ServeOptions {
   port: string;
@@ -26,10 +27,17 @@ export function registerServe(program: Command): void {
         const app = express.default();
         const docsDir = path.resolve(opts.docs);
 
+        // Check if docs directory exists
+        if (!fs.existsSync(docsDir)) {
+          console.error(chalk.red('Error: Docs directory not found:', docsDir));
+          console.log(chalk.yellow('Run: autodocs build'));
+          process.exit(1);
+        }
+
         // Serve static files
         app.use(express.default.static(docsDir));
 
-        // SPA fallback
+        // SPA fallback - serve index.html for all routes (for React Router)
         app.get('*', (_req: import('express').Request, res: import('express').Response) => {
           res.sendFile(path.join(docsDir, 'index.html'), (err: unknown) => {
             if (err) {

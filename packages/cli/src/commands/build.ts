@@ -3,8 +3,13 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { Command } from 'commander';
 import { glob } from 'glob';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import fsPromises from 'fs/promises';
 import { loadConfig, resolveConfigPaths } from '../config';
-import { createProgram, extractDocs } from '@opensyntaxhq/autodocs-core';
+import { createProgram, extractDocs, DocEntry } from '@opensyntaxhq/autodocs-core';
+
+const execAsync = promisify(exec);
 
 interface BuildOptions {
   config?: string;
@@ -13,6 +18,99 @@ interface BuildOptions {
   clean?: boolean;
   verbose?: boolean;
   cache?: boolean;
+}
+
+async function copyDirectory(src: string, dest: string): Promise<void> {
+  await fsPromises.mkdir(dest, { recursive: true });
+
+  const entries = await fsPromises.readdir(src, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+
+    if (entry.isDirectory()) {
+      await copyDirectory(srcPath, destPath);
+    } else {
+      await fsPromises.copyFile(srcPath, destPath);
+    }
+  }
+}
+
+async function buildReactUI(
+  docs: DocEntry[],
+  outputDir: string,
+  spinner: ReturnType<typeof ora>
+): Promise<void> {
+  // Find the UI package using require.resolve - works in monorepo
+  let uiDir: string;
+  let uiDistDir: string;
+
+  try {
+    // Try to resolve the UI package from the monorepo
+    const uiPackageJson = require.resolve('@opensyntaxhq/autodocs-ui/package.json');
+    uiDir = path.dirname(uiPackageJson);
+    uiDistDir = path.join(uiDir, 'dist');
+  } catch {
+    // Fallback: resolve relative to CLI package in monorepo
+    uiDir = path.resolve(__dirname, '../../ui');
+    uiDistDir = path.join(uiDir, 'dist');
+  }
+
+  // Check if UI package exists
+  try {
+    await fsPromises.access(uiDir);
+  } catch {
+    // UI package not found, fall back to basic HTML
+    spinner.text = 'React UI not found, using basic HTML generator...';
+    const { generateHtml } = await import('@opensyntaxhq/autodocs-core');
+    await generateHtml(docs, outputDir);
+    return;
+  }
+
+  // Step 1: Build the React UI
+  spinner.text = 'Building React UI...';
+
+  try {
+    await execAsync('npm run build', { cwd: uiDir });
+  } catch {
+    spinner.fail(chalk.red('Failed to build React UI, falling back to basic HTML'));
+    const { generateHtml } = await import('@opensyntaxhq/autodocs-core');
+    await generateHtml(docs, outputDir);
+    return;
+  }
+
+  spinner.succeed(chalk.green('React UI built'));
+
+  // Step 2: Clean and create output directory
+  spinner.start('Preparing output directory...');
+
+  await fsPromises.rm(outputDir, { recursive: true, force: true });
+  await fsPromises.mkdir(outputDir, { recursive: true });
+
+  // Step 3: Copy React UI assets
+  spinner.text = 'Copying UI assets...';
+
+  await copyDirectory(uiDistDir, outputDir);
+
+  spinner.succeed(chalk.green('UI assets copied'));
+
+  // Step 4: Generate docs.json
+  spinner.start('Generating docs data...');
+
+  const docsData = {
+    version: '0.1.0',
+    generatedAt: new Date().toISOString(),
+    entries: docs,
+  };
+
+  await fsPromises.writeFile(
+    path.join(outputDir, 'docs.json'),
+    JSON.stringify(docsData, null, 2),
+    'utf-8'
+  );
+
+  spinner.succeed(chalk.green('Documentation data generated'));
 }
 
 export function registerBuild(program: Command): void {
@@ -129,8 +227,8 @@ export function registerBuild(program: Command): void {
           }
           case 'static':
           default: {
-            const { generateHtml } = await import('@opensyntaxhq/autodocs-core');
-            await generateHtml(docs, config.output.dir);
+            // Build and integrate React UI
+            await buildReactUI(docs, config.output.dir, spinner);
             break;
           }
         }
