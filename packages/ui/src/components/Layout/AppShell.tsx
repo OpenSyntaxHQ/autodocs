@@ -1,30 +1,23 @@
-import { Sidebar } from './Sidebar';
+import { Outlet } from 'react-router-dom';
 import { Header } from './Header';
-import { useStore } from '../../store';
-import clsx from 'clsx';
+import { Sidebar } from './Sidebar';
+import { CommandMenu } from '../Search/CommandMenu';
 
-interface AppShellProps {
-  children: React.ReactNode;
-}
-
-export function AppShell({ children }: AppShellProps) {
-  const sidebarOpen = useStore((state) => state.sidebarOpen);
-
+export function AppShell() {
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar
-        className={clsx(
-          'transition-transform duration-200',
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        )}
-      />
-
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Header />
-        <main className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">{children}</div>
+    <div className="flex h-screen flex-col bg-background text-foreground">
+      <Header />
+      <div className="flex flex-1 overflow-hidden">
+        <div className="hidden border-r border-border md:block">
+          <Sidebar />
+        </div>
+        <main className="flex-1 overflow-y-auto bg-background p-6 lg:p-10">
+          <div className="mx-auto max-w-4xl">
+            <Outlet />
+          </div>
         </main>
       </div>
+      <CommandMenu />
     </div>
   );
 }

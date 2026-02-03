@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AppShell } from './components/Layout/AppShell';
 import { HomePage } from './pages/HomePage';
 import { TypePage } from './pages/TypePage';
-import { SearchDialog } from './components/Search/SearchDialog';
 import { useStore, DocEntry } from './store';
 import { useEffect } from 'react';
 
@@ -38,13 +37,12 @@ export function App() {
 
   return (
     <BrowserRouter>
-      <AppShell>
-        <Routes>
+      <Routes>
+        <Route element={<AppShell />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/:kind/:name" element={<TypePage />} />
-        </Routes>
-      </AppShell>
-      <SearchDialog />
+        </Route>
+      </Routes>
     </BrowserRouter>
   );
 }

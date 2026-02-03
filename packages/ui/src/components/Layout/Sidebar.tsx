@@ -1,6 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useStore, DocEntry } from '../../store';
-import clsx from 'clsx';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
+import { buttonVariants } from '@/components/ui/button';
 
 interface SidebarProps {
   className?: string;
@@ -20,37 +22,47 @@ export function Sidebar({ className }: SidebarProps) {
 
   return (
     <aside
-      className={clsx(
-        'w-64 flex-shrink-0 overflow-y-auto border-r border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900',
+      className={cn(
+        'w-64 shrink-0 border-r border-border bg-sidebar/50 backdrop-blur-xl',
         className
       )}
     >
-      <nav className="p-4">
-        {Object.entries(grouped).map(([kind, items]) => (
-          <div key={kind} className="mb-6">
-            <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-              {kind}s
-            </h3>
-            <ul className="space-y-1">
-              {items.map((item) => (
-                <li key={item.id}>
-                  <Link
-                    to={`/${kind}/${item.name}`}
-                    className={clsx(
-                      'block rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                      location.pathname === `/${kind}/${item.name}`
-                        ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400'
-                        : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
-                    )}
-                  >
-                    {item.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </nav>
+      <ScrollArea className="h-full">
+        <nav className="p-4">
+          <Link
+            to="/"
+            className="mb-6 flex items-center px-2 py-1 text-lg font-bold tracking-tight"
+          >
+            Autodocs
+          </Link>
+
+          {Object.entries(grouped).map(([kind, items]) => (
+            <div key={kind} className="mb-6">
+              <h3 className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {kind.endsWith('s') ? `${kind}es` : `${kind}s`}
+              </h3>
+              <ul className="space-y-1">
+                {items.map((item) => (
+                  <li key={item.id}>
+                    <Link
+                      to={`/${kind}/${item.name}`}
+                      className={cn(
+                        buttonVariants({ variant: 'ghost', size: 'sm' }),
+                        'w-full justify-start',
+                        location.pathname === `/${kind}/${item.name}`
+                          ? 'bg-secondary text-secondary-foreground font-medium'
+                          : 'text-muted-foreground hover:text-foreground'
+                      )}
+                    >
+                      {item.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </nav>
+      </ScrollArea>
     </aside>
   );
 }

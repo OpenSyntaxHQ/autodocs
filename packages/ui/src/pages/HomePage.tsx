@@ -24,7 +24,9 @@ export function HomePage() {
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {Object.entries(grouped).map(([kind, items]) => (
           <div key={kind} className="rounded-lg border border-gray-200 p-6 dark:border-gray-800">
-            <h2 className="mb-4 text-xl font-bold capitalize">{kind}s</h2>
+            <h2 className="mb-4 text-xl font-bold capitalize">
+              {kind.endsWith('s') ? `${kind}es` : `${kind}s`}
+            </h2>
             <p className="mb-4 text-gray-600 dark:text-gray-400">
               {items.length} {kind}
               {items.length !== 1 ? 's' : ''}

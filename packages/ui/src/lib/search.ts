@@ -87,3 +87,5 @@ export class SearchIndex {
     this.store.clear();
   }
 }
+
+export const searchIndex = new SearchIndex();

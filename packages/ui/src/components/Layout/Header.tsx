@@ -1,50 +1,37 @@
 import { Menu, Moon, Sun, Search } from 'lucide-react';
 import { useStore } from '../../store';
+import { Button } from '@/components/ui/button';
 
 export function Header() {
   const theme = useStore((state) => state.theme);
   const toggleTheme = useStore((state) => state.toggleTheme);
-  const toggleSidebar = useStore((state) => state.toggleSidebar);
-  const setSearchOpen = useStore((state) => state.setSearchOpen);
-
-  const handleSearchClick = () => {
-    setSearchOpen(true);
-  };
+  const toggleSearch = useStore((state) => state.toggleSearch);
 
   return (
-    <header className="border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
-      <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={toggleSidebar}
-            className="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-800 lg:hidden"
-            aria-label="Toggle sidebar"
-          >
-            <Menu className="h-6 w-6" />
-          </button>
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/50 backdrop-blur-xl supports-backdrop-filter:bg-background/60">
+      <div className="flex h-14 items-center gap-4 px-6">
+        <Button variant="ghost" size="icon" className="md:hidden">
+          <Menu className="h-5 w-5" />
+        </Button>
 
-          <h1 className="text-xl font-bold">Autodocs</h1>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleSearchClick}
-            className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-500 hover:border-gray-300 dark:border-gray-700 dark:text-gray-400 dark:hover:border-gray-600"
+        <div className="flex flex-1 items-center justify-end gap-4">
+          <Button
+            variant="outline"
+            className="relative h-9 w-full justify-start rounded-lg bg-background text-sm font-normal text-muted-foreground shadow-none sm:pr-12 md:w-40 lg:w-64"
+            onClick={toggleSearch}
           >
-            <Search className="h-4 w-4" />
-            <span className="hidden sm:inline">Search...</span>
-            <kbd className="hidden rounded bg-gray-100 px-1.5 py-0.5 text-xs dark:bg-gray-800 sm:inline">
-              ⌘K
+            <Search className="mr-2 h-4 w-4" />
+            <span className="hidden lg:inline-flex">Search documentation...</span>
+            <span className="inline-flex lg:hidden">Search...</span>
+            <kbd className="pointer-events-none absolute right-[0.3rem] top-[0.3rem] hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+              <span className="text-xs">⌘</span>K
             </kbd>
-          </button>
+          </Button>
 
-          <button
-            onClick={toggleTheme}
-            className="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
-            aria-label="Toggle theme"
-          >
-            {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-          </button>
+          <Button variant="ghost" size="icon" onClick={toggleTheme}>
+            {theme === 'dark' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+            <span className="sr-only">Toggle theme</span>
+          </Button>
         </div>
       </div>
     </header>

@@ -45,6 +45,7 @@ interface AppState {
   setSearchQuery: (query: string) => void;
   searchOpen: boolean;
   setSearchOpen: (open: boolean) => void;
+  toggleSearch: () => void;
 
   // Documentation
   docs: DocEntry[];
@@ -80,6 +81,7 @@ export const useStore = create<AppState>()(
       setSearchQuery: (query) => set({ searchQuery: query }),
       searchOpen: false,
       setSearchOpen: (open) => set({ searchOpen: open }),
+      toggleSearch: () => set((state) => ({ searchOpen: !state.searchOpen })),
 
       docs: [],
       setDocs: (docs) => set({ docs }),
