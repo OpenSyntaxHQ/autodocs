@@ -2,7 +2,6 @@ import { CodeBlock } from './CodeBlock';
 import { DocEntry } from '../../store';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import {
   Table,
   TableBody,
@@ -16,41 +15,83 @@ interface TypeViewProps {
   entry: DocEntry;
 }
 
+function getModuleName(fileName: string): string {
+  return fileName
+    .replace(/\\/g, '/')
+    .replace(/\.[^/.]+$/, '')
+    .replace(/^.*\/src\//, '');
+}
+
 export function TypeView({ entry }: TypeViewProps) {
+  const stats = [
+    { label: 'Properties', value: entry.members?.length ?? 0 },
+    { label: 'Parameters', value: entry.parameters?.length ?? 0 },
+    { label: 'Examples', value: entry.documentation?.examples?.length ?? 0 },
+  ].filter((stat) => stat.value > 0);
+
+  const moduleName = getModuleName(entry.fileName);
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <h1 className="text-4xl font-bold tracking-tight text-foreground">{entry.name}</h1>
-          <Badge variant="secondary" className="text-sm font-medium capitalize">
-            {entry.kind}
-          </Badge>
+    <div className="space-y-10 animate-rise">
+      <section className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/70 p-8 shadow-glow surface-glass">
+        <div
+          aria-hidden="true"
+          className="absolute -left-24 top-6 h-40 w-40 rounded-full blur-[80px]"
+          style={{ background: 'var(--glow-2)' }}
+        />
+        <div className="relative flex flex-col gap-8 lg:flex-row lg:items-start">
+          <div className="flex-1 space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="secondary" className="capitalize">
+                {entry.kind}
+              </Badge>
+              <Badge variant="outline" className="rounded-full px-3 py-1 text-xs">
+                {moduleName || 'root'}
+              </Badge>
+            </div>
+            <h1 className="text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
+              {entry.name}
+            </h1>
+            {entry.documentation?.summary && (
+              <p className="text-lg leading-relaxed text-muted-foreground">
+                {entry.documentation.summary}
+              </p>
+            )}
+          </div>
+
+          {stats.length > 0 && (
+            <div className="flex w-full flex-wrap gap-3 lg:max-w-[360px] lg:justify-end">
+              {stats.map((stat) => (
+                <div
+                  key={stat.label}
+                  className="flex min-h-[80px] min-w-[120px] flex-1 flex-col justify-between rounded-2xl border border-border/60 bg-background/70 p-4 shadow-sm sm:flex-none"
+                >
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                    {stat.label}
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold">{stat.value}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+      </section>
 
-        {entry.documentation?.summary && (
-          <p className="text-xl text-muted-foreground leading-relaxed">
-            {entry.documentation.summary}
-          </p>
-        )}
-      </div>
-
-      <Separator />
-
-      <div className="space-y-4">
+      <section className="space-y-4">
         <h2 className="text-2xl font-semibold tracking-tight">Signature</h2>
         <CodeBlock code={entry.signature} language="typescript" />
-      </div>
+      </section>
 
       {entry.members && entry.members.length > 0 && (
-        <div className="space-y-4">
+        <section className="space-y-4">
           <h2 className="text-2xl font-semibold tracking-tight">Properties</h2>
-          <Card>
+          <Card className="overflow-hidden border-border/60 bg-card/70 p-0">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-muted/40">
                 <TableRow>
                   <TableHead className="w-[200px]">Name</TableHead>
                   <TableHead className="w-[200px]">Type</TableHead>
-                  <TableHead className="w-[100px]">Optional</TableHead>
+                  <TableHead className="w-[120px]">Optional</TableHead>
                   <TableHead>Description</TableHead>
                 </TableRow>
               </TableHeader>
@@ -59,18 +100,22 @@ export function TypeView({ entry }: TypeViewProps) {
                   <TableRow key={member.name}>
                     <TableCell className="font-medium font-mono">{member.name}</TableCell>
                     <TableCell>
-                      <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold text-primary">
+                      <code className="relative rounded-md bg-muted px-2 py-1 font-mono text-xs font-semibold text-primary">
                         {member.type}
                       </code>
                     </TableCell>
                     <TableCell>
                       {member.optional ? (
-                        <Badge variant="outline">Optional</Badge>
+                        <Badge variant="outline" className="rounded-full text-xs">
+                          Optional
+                        </Badge>
                       ) : (
-                        <Badge variant="secondary">Required</Badge>
+                        <Badge variant="secondary" className="rounded-full text-xs">
+                          Required
+                        </Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="whitespace-normal text-muted-foreground">
                       {member.documentation || '-'}
                     </TableCell>
                   </TableRow>
@@ -78,19 +123,19 @@ export function TypeView({ entry }: TypeViewProps) {
               </TableBody>
             </Table>
           </Card>
-        </div>
+        </section>
       )}
 
       {entry.parameters && entry.parameters.length > 0 && (
-        <div className="space-y-4">
+        <section className="space-y-4">
           <h2 className="text-2xl font-semibold tracking-tight">Parameters</h2>
-          <Card>
+          <Card className="overflow-hidden border-border/60 bg-card/70 p-0">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-muted/40">
                 <TableRow>
                   <TableHead className="w-[200px]">Name</TableHead>
                   <TableHead className="w-[200px]">Type</TableHead>
-                  <TableHead className="w-[100px]">Optional</TableHead>
+                  <TableHead className="w-[120px]">Optional</TableHead>
                   <TableHead>Description</TableHead>
                 </TableRow>
               </TableHeader>
@@ -99,18 +144,22 @@ export function TypeView({ entry }: TypeViewProps) {
                   <TableRow key={param.name}>
                     <TableCell className="font-medium font-mono">{param.name}</TableCell>
                     <TableCell>
-                      <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold text-primary">
+                      <code className="relative rounded-md bg-muted px-2 py-1 font-mono text-xs font-semibold text-primary">
                         {param.type}
                       </code>
                     </TableCell>
                     <TableCell>
                       {param.optional ? (
-                        <Badge variant="outline">Optional</Badge>
+                        <Badge variant="outline" className="rounded-full text-xs">
+                          Optional
+                        </Badge>
                       ) : (
-                        <Badge variant="secondary">Required</Badge>
+                        <Badge variant="secondary" className="rounded-full text-xs">
+                          Required
+                        </Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="whitespace-normal text-muted-foreground">
                       {param.documentation || '-'}
                     </TableCell>
                   </TableRow>
@@ -118,20 +167,20 @@ export function TypeView({ entry }: TypeViewProps) {
               </TableBody>
             </Table>
           </Card>
-        </div>
+        </section>
       )}
 
       {entry.returnType && (
-        <div className="space-y-4">
+        <section className="space-y-4">
           <h2 className="text-2xl font-semibold tracking-tight">Returns</h2>
-          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-4">
+          <div className="rounded-2xl border border-border/60 bg-card/70 p-4 shadow-sm">
             <code className="font-mono text-sm text-primary">{entry.returnType.text}</code>
           </div>
-        </div>
+        </section>
       )}
 
       {entry.documentation?.examples && entry.documentation.examples.length > 0 && (
-        <div className="space-y-4">
+        <section className="space-y-4">
           <h2 className="text-2xl font-semibold tracking-tight">Examples</h2>
           <div className="space-y-6">
             {entry.documentation.examples.map((example, index) => (
@@ -141,7 +190,7 @@ export function TypeView({ entry }: TypeViewProps) {
               </div>
             ))}
           </div>
-        </div>
+        </section>
       )}
     </div>
   );

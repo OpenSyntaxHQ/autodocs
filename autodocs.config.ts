@@ -2,7 +2,7 @@ import { defineConfig } from '@opensyntaxhq/autodocs';
 
 export default defineConfig({
   // Entry points to document
-  include: ['src/**/*.ts'],
+  include: ['packages/**/*.ts', 'packages/**/*.tsx'],
   exclude: ['**/*.test.ts', '**/*.spec.ts'],
 
   // Output settings

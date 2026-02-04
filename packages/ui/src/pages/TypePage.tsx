@@ -11,8 +11,8 @@ export function TypePage() {
   if (!entry) {
     return (
       <div className="text-center">
-        <h1 className="text-2xl font-bold">Not Found</h1>
-        <p className="mt-2 text-gray-600 dark:text-gray-400">
+        <h1 className="text-2xl font-bold text-foreground">Not Found</h1>
+        <p className="mt-2 text-muted-foreground">
           Could not find documentation for {kind}/{name}
         </p>
       </div>
