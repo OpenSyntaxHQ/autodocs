@@ -56,13 +56,19 @@ describe('buildReactUI', () => {
     const outputDir = path.join(tempDir, 'out');
     const spinner = createSpinner() as unknown as ReturnType<typeof import('ora')>;
 
+    const configDir = path.join(tempDir, 'config');
+    const docsDir = path.join(configDir, 'docs');
+    await fs.mkdir(docsDir, { recursive: true });
+    await fs.writeFile(path.join(docsDir, 'intro.md'), '# Intro', 'utf-8');
+
     await buildReactUI(docs, outputDir, spinner, {
       rootDir,
       uiDir,
+      configDir,
       uiConfig: {
         theme: { primaryColor: '#123456', logo: logoPath, favicon: faviconPath },
         features: { search: false },
-        sidebar: [{ title: 'Guide', path: '/guide' }],
+        sidebar: [{ title: 'Guide', path: '/docs/intro.md' }],
       },
     });
 
@@ -89,5 +95,8 @@ describe('buildReactUI', () => {
 
     const indexHtml = await fs.readFile(path.join(outputDir, 'index.html'), 'utf-8');
     expect(indexHtml).toContain('<html>');
+
+    const introMd = await fs.readFile(path.join(outputDir, 'docs', 'intro.md'), 'utf-8');
+    expect(introMd).toContain('# Intro');
   });
 });

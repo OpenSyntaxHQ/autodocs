@@ -51,6 +51,42 @@ async function assetToDataUrl(value?: string): Promise<string | undefined> {
   }
 }
 
+async function copySidebarFiles(
+  sidebar: Array<import('../config').SidebarItem> | undefined,
+  outputDir: string,
+  configDir?: string
+): Promise<void> {
+  if (!sidebar || !configDir) {
+    return;
+  }
+
+  for (const item of sidebar) {
+    if (item.items && item.items.length > 0) {
+      await copySidebarFiles(item.items, outputDir, configDir);
+    }
+
+    if (!item.path || !item.path.endsWith('.md')) {
+      continue;
+    }
+
+    if (/^(https?:|data:)/.test(item.path)) {
+      continue;
+    }
+
+    const relativePath = item.path.startsWith('/') ? item.path.slice(1) : item.path;
+    const sourcePath = path.resolve(configDir, relativePath);
+    try {
+      await fsPromises.access(sourcePath);
+    } catch {
+      continue;
+    }
+
+    const destinationPath = path.join(outputDir, relativePath);
+    await fsPromises.mkdir(path.dirname(destinationPath), { recursive: true });
+    await fsPromises.copyFile(sourcePath, destinationPath);
+  }
+}
+
 async function copyDirectory(src: string, dest: string): Promise<void> {
   await fsPromises.mkdir(dest, { recursive: true });
 
@@ -74,6 +110,7 @@ export async function buildReactUI(
   spinner: ReturnType<typeof ora>,
   options: {
     rootDir?: string;
+    configDir?: string;
     uiConfig: {
       theme?: import('../config').ThemeConfig;
       features?: import('../config').FeaturesConfig;
@@ -139,6 +176,11 @@ export async function buildReactUI(
   await copyDirectory(uiDistDir, outputDir);
 
   spinner.succeed(chalk.green('UI assets copied'));
+
+  // Step 3b: Copy markdown content referenced by sidebar
+  spinner.start('Copying sidebar content...');
+  await copySidebarFiles(options.uiConfig.sidebar, outputDir, options.configDir);
+  spinner.succeed(chalk.green('Sidebar content copied'));
 
   // Step 4: Generate docs.json
   spinner.start('Generating docs data...');
@@ -296,6 +338,7 @@ export function registerBuild(program: Command): void {
             // Build and integrate React UI
             await buildReactUI(docs, config.output.dir, spinner, {
               rootDir: parseResult.rootDir,
+              configDir,
               uiConfig: {
                 theme: config.theme,
                 features: config.features,
