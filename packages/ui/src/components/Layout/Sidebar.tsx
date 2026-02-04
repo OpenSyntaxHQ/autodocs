@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useStore, DocEntry } from '../../store';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { cn } from '@/lib/utils';
+import { cn, slugify } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -74,12 +74,15 @@ export function Sidebar({ className }: SidebarProps) {
               <ul className="space-y-1">
                 {config.sidebar.map((item) => (
                   <li key={item.title}>
-                    {item.path ? (
+                    {item.path || item.autogenerate ? (
                       <Link
-                        to={item.path}
+                        to={item.path ?? `/section/${slugify(item.title)}`}
                         className={cn(
                           buttonVariants({ variant: 'ghost', size: 'sm' }),
-                          'w-full justify-start rounded-xl px-3 py-2 text-sm text-muted-foreground hover:bg-accent/60 hover:text-foreground'
+                          'w-full justify-start rounded-xl px-3 py-2 text-sm',
+                          location.pathname === (item.path ?? `/section/${slugify(item.title)}`)
+                            ? 'bg-primary/10 text-foreground shadow-sm shadow-primary/10'
+                            : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'
                         )}
                       >
                         {item.title}

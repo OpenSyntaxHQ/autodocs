@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AppShell } from './components/Layout/AppShell';
 import { HomePage } from './pages/HomePage';
+import { MarkdownPage } from './pages/MarkdownPage';
+import { SectionPage } from './pages/SectionPage';
 import { TypePage } from './pages/TypePage';
 import { useStore } from './store';
 import { useEffect, useState } from 'react';
@@ -89,6 +91,8 @@ export function App() {
       <Routes>
         <Route element={<AppShell />}>
           <Route path="/" element={<HomePage />} />
+          <Route path="/docs/*" element={<MarkdownPage />} />
+          <Route path="/section/:slug" element={<SectionPage />} />
           <Route path="/:kind/:name" element={<TypePage />} />
         </Route>
       </Routes>
