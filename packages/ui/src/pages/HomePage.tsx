@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import defaultLogo from '@/assets/logo.svg';
 
 function pluralize(kind: string, count: number): string {
   const singular = kind.toLowerCase();
@@ -45,6 +46,7 @@ export function HomePage() {
   const firstDoc = docs[0];
   const kindEntries = Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
   const searchEnabled = config?.features?.search !== false;
+  const logoSrc = config?.theme?.logo || defaultLogo;
 
   return (
     <div className="space-y-12">
@@ -56,12 +58,19 @@ export function HomePage() {
         />
         <div className="relative flex flex-col gap-8 lg:flex-row lg:items-start">
           <div className="flex-1 space-y-6">
-            <Badge
-              variant="outline"
-              className="rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.3em]"
-            >
-              Autodocs
-            </Badge>
+            <div className="flex flex-wrap items-center gap-3">
+              <img
+                src={logoSrc}
+                alt="Autodocs"
+                className="h-12 w-12 rounded-2xl object-contain shadow-sm shadow-black/20"
+              />
+              <Badge
+                variant="outline"
+                className="rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.3em]"
+              >
+                Autodocs
+              </Badge>
+            </div>
             <div className="space-y-3">
               <h1 className="text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
                 API Documentation

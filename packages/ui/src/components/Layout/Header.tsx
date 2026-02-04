@@ -4,6 +4,7 @@ import { useStore } from '../../store';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Sidebar } from './Sidebar';
+import defaultLogo from '@/assets/logo.svg';
 
 export function Header() {
   const theme = useStore((state) => state.theme);
@@ -13,7 +14,7 @@ export function Header() {
 
   const searchEnabled = config?.features?.search !== false;
   const darkModeEnabled = config?.features?.darkMode !== false;
-  const logo = config?.theme?.logo;
+  const logoSrc = config?.theme?.logo || defaultLogo;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/70 backdrop-blur-xl">
@@ -32,13 +33,11 @@ export function Header() {
           </Sheet>
 
           <Link to="/" className="group flex items-center gap-3">
-            {logo ? (
-              <img src={logo} alt="Autodocs" className="h-9 w-9 rounded-xl object-contain" />
-            ) : (
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm shadow-primary/30">
-                <span className="text-sm font-semibold">A</span>
-              </div>
-            )}
+            <img
+              src={logoSrc}
+              alt="Autodocs"
+              className="h-9 w-9 rounded-xl object-contain shadow-sm shadow-black/20"
+            />
             <div className="hidden sm:block">
               <div className="text-sm font-semibold leading-none">Autodocs</div>
               <div className="mt-1 text-xs text-muted-foreground">Type-driven reference</div>
