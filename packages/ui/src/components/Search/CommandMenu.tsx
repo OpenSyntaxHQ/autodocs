@@ -24,6 +24,7 @@ export function CommandMenu() {
   React.useEffect(() => {
     // Initialize search index
     if (docs.length > 0) {
+      searchIndex.clear();
       searchIndex.addDocuments(docs);
     }
 

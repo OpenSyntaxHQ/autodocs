@@ -2,17 +2,19 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AppShell } from './components/Layout/AppShell';
 import { HomePage } from './pages/HomePage';
 import { TypePage } from './pages/TypePage';
-import { useStore, DocEntry } from './store';
-import { useEffect } from 'react';
-
-interface DocsResponse {
-  entries: DocEntry[];
-}
+import { useStore } from './store';
+import { useEffect, useState } from 'react';
+import { applyTheme, loadConfig, loadDocs } from './lib/loaders';
 
 export function App() {
   const docs = useStore((state) => state.docs);
   const setDocs = useStore((state) => state.setDocs);
   const theme = useStore((state) => state.theme);
+  const setTheme = useStore((state) => state.setTheme);
+  const setConfig = useStore((state) => state.setConfig);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Apply theme class on mount and when theme changes
   useEffect(() => {
@@ -23,17 +25,64 @@ export function App() {
     }
   }, [theme]);
 
-  // Load docs on mount
   useEffect(() => {
-    if (docs.length === 0) {
-      fetch('/docs.json')
-        .then((res) => res.json() as Promise<DocsResponse>)
-        .then((data) => {
-          setDocs(data.entries);
-        })
-        .catch(console.error);
-    }
-  }, [docs.length, setDocs]);
+    let active = true;
+
+    const load = async () => {
+      try {
+        const [configData, docsData] = await Promise.all([loadConfig(), loadDocs()]);
+
+        if (!active) {
+          return;
+        }
+
+        if (configData) {
+          setConfig(configData);
+          applyTheme(configData);
+          if (configData.features?.darkMode === false) {
+            setTheme('light');
+          }
+        }
+
+        if (docs.length === 0) {
+          setDocs(docsData.entries);
+        }
+      } catch (err) {
+        if (active) {
+          setError(err instanceof Error ? err.message : 'Failed to load documentation');
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void load();
+
+    return () => {
+      active = false;
+    };
+  }, [docs.length, setDocs, setConfig, setTheme]);
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center text-sm text-muted-foreground">
+        Loading documentation...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-screen items-center justify-center px-6 text-center">
+        <div className="max-w-md space-y-3">
+          <h1 className="text-2xl font-semibold">Unable to load docs</h1>
+          <p className="text-sm text-muted-foreground">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <BrowserRouter>

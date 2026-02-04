@@ -1,4 +1,5 @@
 import FlexSearch from 'flexsearch';
+import { DocEntry } from '../store';
 
 export interface SearchResult {
   id: string;
@@ -30,9 +31,7 @@ export class SearchIndex {
     });
   }
 
-  addDocuments(
-    docs: Array<{ id: string; name: string; kind: string; documentation?: { summary?: string } }>
-  ): void {
+  addDocuments(docs: DocEntry[]): void {
     for (const doc of docs) {
       const searchDoc: SearchDoc = {
         id: doc.id,

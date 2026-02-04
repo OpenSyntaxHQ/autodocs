@@ -2,8 +2,12 @@ import { Outlet } from 'react-router-dom';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { CommandMenu } from '../Search/CommandMenu';
+import { useStore } from '../../store';
 
 export function AppShell() {
+  const config = useStore((state) => state.config);
+  const searchEnabled = config?.features?.search !== false;
+
   return (
     <div className="relative h-screen min-h-[100dvh] overflow-hidden text-foreground">
       <div className="relative flex h-full flex-col">
@@ -18,7 +22,7 @@ export function AppShell() {
             </div>
           </main>
         </div>
-        <CommandMenu />
+        {searchEnabled && <CommandMenu />}
       </div>
     </div>
   );

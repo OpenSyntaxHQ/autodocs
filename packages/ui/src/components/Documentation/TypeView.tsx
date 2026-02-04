@@ -15,13 +15,6 @@ interface TypeViewProps {
   entry: DocEntry;
 }
 
-function getModuleName(fileName: string): string {
-  return fileName
-    .replace(/\\/g, '/')
-    .replace(/\.[^/.]+$/, '')
-    .replace(/^.*\/src\//, '');
-}
-
 export function TypeView({ entry }: TypeViewProps) {
   const stats = [
     { label: 'Properties', value: entry.members?.length ?? 0 },
@@ -29,7 +22,9 @@ export function TypeView({ entry }: TypeViewProps) {
     { label: 'Examples', value: entry.documentation?.examples?.length ?? 0 },
   ].filter((stat) => stat.value > 0);
 
-  const moduleName = getModuleName(entry.fileName);
+  const moduleName = entry.module || entry.source?.file || entry.fileName;
+  const paramDocs = new Map(entry.documentation?.params?.map((p) => [p.name, p]) || []);
+  const hasEnumMembers = entry.kind === 'enum' && entry.members && entry.members.length > 0;
 
   return (
     <div className="space-y-10 animate-rise">
@@ -48,6 +43,11 @@ export function TypeView({ entry }: TypeViewProps) {
               <Badge variant="outline" className="rounded-full px-3 py-1 text-xs">
                 {moduleName || 'root'}
               </Badge>
+              {entry.documentation?.deprecated && (
+                <Badge variant="outline" className="rounded-full px-3 py-1 text-xs">
+                  Deprecated
+                </Badge>
+              )}
             </div>
             <h1 className="text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
               {entry.name}
@@ -55,6 +55,11 @@ export function TypeView({ entry }: TypeViewProps) {
             {entry.documentation?.summary && (
               <p className="text-lg leading-relaxed text-muted-foreground">
                 {entry.documentation.summary}
+              </p>
+            )}
+            {entry.documentation?.deprecated && (
+              <p className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+                {entry.documentation.deprecated}
               </p>
             )}
           </div>
@@ -82,7 +87,43 @@ export function TypeView({ entry }: TypeViewProps) {
         <CodeBlock code={entry.signature} language="typescript" />
       </section>
 
-      {entry.members && entry.members.length > 0 && (
+      {hasEnumMembers && (
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold tracking-tight">Members</h2>
+          <Card className="overflow-hidden border-border/60 bg-card/70 p-0">
+            <Table>
+              <TableHeader className="bg-muted/40">
+                <TableRow>
+                  <TableHead className="w-[240px]">Name</TableHead>
+                  <TableHead className="w-[240px]">Value</TableHead>
+                  <TableHead>Description</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {entry.members?.map((member) => (
+                  <TableRow key={member.name}>
+                    <TableCell className="font-medium font-mono">{member.name}</TableCell>
+                    <TableCell>
+                      {member.value ? (
+                        <code className="relative rounded-md bg-muted px-2 py-1 font-mono text-xs font-semibold text-primary">
+                          {member.value}
+                        </code>
+                      ) : (
+                        '-'
+                      )}
+                    </TableCell>
+                    <TableCell className="whitespace-normal text-muted-foreground">
+                      {member.documentation || '-'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </section>
+      )}
+
+      {entry.members && entry.members.length > 0 && entry.kind !== 'enum' && (
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold tracking-tight">Properties</h2>
           <Card className="overflow-hidden border-border/60 bg-card/70 p-0">
@@ -140,30 +181,33 @@ export function TypeView({ entry }: TypeViewProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {entry.parameters.map((param) => (
-                  <TableRow key={param.name}>
-                    <TableCell className="font-medium font-mono">{param.name}</TableCell>
-                    <TableCell>
-                      <code className="relative rounded-md bg-muted px-2 py-1 font-mono text-xs font-semibold text-primary">
-                        {param.type}
-                      </code>
-                    </TableCell>
-                    <TableCell>
-                      {param.optional ? (
-                        <Badge variant="outline" className="rounded-full text-xs">
-                          Optional
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary" className="rounded-full text-xs">
-                          Required
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="whitespace-normal text-muted-foreground">
-                      {param.documentation || '-'}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {entry.parameters.map((param) => {
+                  const doc = param.documentation || paramDocs.get(param.name)?.text || '-';
+                  return (
+                    <TableRow key={param.name}>
+                      <TableCell className="font-medium font-mono">{param.name}</TableCell>
+                      <TableCell>
+                        <code className="relative rounded-md bg-muted px-2 py-1 font-mono text-xs font-semibold text-primary">
+                          {param.type}
+                        </code>
+                      </TableCell>
+                      <TableCell>
+                        {param.optional ? (
+                          <Badge variant="outline" className="rounded-full text-xs">
+                            Optional
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="rounded-full text-xs">
+                            Required
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="whitespace-normal text-muted-foreground">
+                        {doc}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </Card>
@@ -175,6 +219,9 @@ export function TypeView({ entry }: TypeViewProps) {
           <h2 className="text-2xl font-semibold tracking-tight">Returns</h2>
           <div className="rounded-2xl border border-border/60 bg-card/70 p-4 shadow-sm">
             <code className="font-mono text-sm text-primary">{entry.returnType.text}</code>
+            {entry.documentation?.returns && (
+              <p className="mt-2 text-sm text-muted-foreground">{entry.documentation.returns}</p>
+            )}
           </div>
         </section>
       )}

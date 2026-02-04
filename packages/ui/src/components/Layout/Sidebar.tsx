@@ -11,6 +11,7 @@ interface SidebarProps {
 
 export function Sidebar({ className }: SidebarProps) {
   const docs = useStore((state) => state.docs);
+  const config = useStore((state) => state.config);
   const location = useLocation();
 
   // Group by kind
@@ -64,6 +65,35 @@ export function Sidebar({ className }: SidebarProps) {
               <span className="ml-auto text-xs text-muted-foreground">{docs.length}</span>
             </Link>
           </div>
+
+          {config?.sidebar && config.sidebar.length > 0 && (
+            <div className="space-y-3">
+              <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                Sections
+              </p>
+              <ul className="space-y-1">
+                {config.sidebar.map((item) => (
+                  <li key={item.title}>
+                    {item.path ? (
+                      <Link
+                        to={item.path}
+                        className={cn(
+                          buttonVariants({ variant: 'ghost', size: 'sm' }),
+                          'w-full justify-start rounded-xl px-3 py-2 text-sm text-muted-foreground hover:bg-accent/60 hover:text-foreground'
+                        )}
+                      >
+                        {item.title}
+                      </Link>
+                    ) : (
+                      <span className="block rounded-xl px-3 py-2 text-sm text-muted-foreground">
+                        {item.title}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div className="space-y-6">
             {kinds.map((kind) => {

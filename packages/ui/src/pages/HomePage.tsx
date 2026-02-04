@@ -29,6 +29,7 @@ function getModuleName(fileName: string): string {
 export function HomePage() {
   const docs = useStore((state) => state.docs);
   const toggleSearch = useStore((state) => state.toggleSearch);
+  const config = useStore((state) => state.config);
 
   // Group by kind
   const grouped = docs.reduce<Record<string, DocEntry[]>>((acc, doc) => {
@@ -40,9 +41,10 @@ export function HomePage() {
 
   const totalEntries = docs.length;
   const kindCount = Object.keys(grouped).length;
-  const moduleCount = new Set(docs.map((doc) => getModuleName(doc.fileName))).size;
+  const moduleCount = new Set(docs.map((doc) => doc.module || getModuleName(doc.fileName))).size;
   const firstDoc = docs[0];
   const kindEntries = Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
+  const searchEnabled = config?.features?.search !== false;
 
   return (
     <div className="space-y-12">
@@ -75,9 +77,11 @@ export function HomePage() {
                   Explore the API
                 </Link>
               </Button>
-              <Button variant="outline" className="rounded-full" onClick={toggleSearch}>
-                Open search (⌘K)
-              </Button>
+              {searchEnabled && (
+                <Button variant="outline" className="rounded-full" onClick={toggleSearch}>
+                  Open search (⌘K)
+                </Button>
+              )}
             </div>
           </div>
 
