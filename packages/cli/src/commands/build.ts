@@ -40,7 +40,15 @@ async function copyDirectory(src: string, dest: string): Promise<void> {
 async function buildReactUI(
   docs: DocEntry[],
   outputDir: string,
-  spinner: ReturnType<typeof ora>
+  spinner: ReturnType<typeof ora>,
+  options: {
+    rootDir?: string;
+    uiConfig: {
+      theme?: import('../config').ThemeConfig;
+      features?: import('../config').FeaturesConfig;
+      sidebar?: import('../config').SidebarItem[];
+    };
+  }
 ): Promise<void> {
   // Find the UI package using require.resolve - works in monorepo
   let uiDir: string;
@@ -98,19 +106,29 @@ async function buildReactUI(
   // Step 4: Generate docs.json
   spinner.start('Generating docs data...');
 
-  const docsData = {
+  const { generateJson } = await import('@opensyntaxhq/autodocs-core');
+  await generateJson(docs, outputDir, { pretty: true, rootDir: options.rootDir });
+
+  spinner.succeed(chalk.green('Documentation data generated'));
+
+  // Step 5: Generate config.json
+  spinner.start('Generating UI config...');
+
+  const configData = {
     version: '0.1.0',
     generatedAt: new Date().toISOString(),
-    entries: docs,
+    theme: options.uiConfig.theme,
+    features: options.uiConfig.features,
+    sidebar: options.uiConfig.sidebar,
   };
 
   await fsPromises.writeFile(
-    path.join(outputDir, 'docs.json'),
-    JSON.stringify(docsData, null, 2),
+    path.join(outputDir, 'config.json'),
+    JSON.stringify(configData, null, 2),
     'utf-8'
   );
 
-  spinner.succeed(chalk.green('Documentation data generated'));
+  spinner.succeed(chalk.green('UI config generated'));
 }
 
 export function registerBuild(program: Command): void {
@@ -200,7 +218,7 @@ export function registerBuild(program: Command): void {
         spinner.start('Extracting documentation...');
 
         // Extract docs
-        const docs = extractDocs(parseResult.program);
+        const docs = extractDocs(parseResult.program, { rootDir: parseResult.rootDir });
 
         if (docs.length === 0) {
           spinner.warn('No exported symbols found to document');
@@ -217,7 +235,10 @@ export function registerBuild(program: Command): void {
         switch (config.output.format) {
           case 'json': {
             const { generateJson } = await import('@opensyntaxhq/autodocs-core');
-            await generateJson(docs, config.output.dir, { pretty: true });
+            await generateJson(docs, config.output.dir, {
+              pretty: true,
+              rootDir: parseResult.rootDir,
+            });
             break;
           }
           case 'markdown': {
@@ -228,7 +249,14 @@ export function registerBuild(program: Command): void {
           case 'static':
           default: {
             // Build and integrate React UI
-            await buildReactUI(docs, config.output.dir, spinner);
+            await buildReactUI(docs, config.output.dir, spinner, {
+              rootDir: parseResult.rootDir,
+              uiConfig: {
+                theme: config.theme,
+                features: config.features,
+                sidebar: config.sidebar,
+              },
+            });
             break;
           }
         }
