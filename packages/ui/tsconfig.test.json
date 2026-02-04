@@ -4,6 +4,6 @@
   "exclude": ["node_modules", "dist"],
   "compilerOptions": {
     "noEmit": true,
-    "types": ["node", "jest", "vite/client"]
+    "types": ["node", "vite/client", "vitest/globals"]
   }
 }
