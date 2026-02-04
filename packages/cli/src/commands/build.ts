@@ -20,6 +20,37 @@ interface BuildOptions {
   cache?: boolean;
 }
 
+const ASSET_MIME_TYPES: Record<string, string> = {
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.ico': 'image/x-icon',
+};
+
+async function assetToDataUrl(value?: string): Promise<string | undefined> {
+  if (!value) {
+    return undefined;
+  }
+  if (/^(https?:|data:)/.test(value)) {
+    return value;
+  }
+  if (!path.isAbsolute(value)) {
+    return value;
+  }
+
+  try {
+    const buffer = await fsPromises.readFile(value);
+    const ext = path.extname(value).toLowerCase();
+    const mime = ASSET_MIME_TYPES[ext] || 'application/octet-stream';
+    return `data:${mime};base64,${buffer.toString('base64')}`;
+  } catch {
+    return undefined;
+  }
+}
+
 async function copyDirectory(src: string, dest: string): Promise<void> {
   await fsPromises.mkdir(dest, { recursive: true });
 
@@ -37,7 +68,7 @@ async function copyDirectory(src: string, dest: string): Promise<void> {
   }
 }
 
-async function buildReactUI(
+export async function buildReactUI(
   docs: DocEntry[],
   outputDir: string,
   spinner: ReturnType<typeof ora>,
@@ -48,21 +79,27 @@ async function buildReactUI(
       features?: import('../config').FeaturesConfig;
       sidebar?: import('../config').SidebarItem[];
     };
+    uiDir?: string;
   }
 ): Promise<void> {
   // Find the UI package using require.resolve - works in monorepo
   let uiDir: string;
   let uiDistDir: string;
 
-  try {
-    // Try to resolve the UI package from the monorepo
-    const uiPackageJson = require.resolve('@opensyntaxhq/autodocs-ui/package.json');
-    uiDir = path.dirname(uiPackageJson);
+  if (options.uiDir) {
+    uiDir = options.uiDir;
     uiDistDir = path.join(uiDir, 'dist');
-  } catch {
-    // Fallback: resolve relative to CLI package in monorepo
-    uiDir = path.resolve(__dirname, '../../ui');
-    uiDistDir = path.join(uiDir, 'dist');
+  } else {
+    try {
+      // Try to resolve the UI package from the monorepo
+      const uiPackageJson = require.resolve('@opensyntaxhq/autodocs-ui/package.json');
+      uiDir = path.dirname(uiPackageJson);
+      uiDistDir = path.join(uiDir, 'dist');
+    } catch {
+      // Fallback: resolve relative to CLI package in monorepo
+      uiDir = path.resolve(__dirname, '../../ui');
+      uiDistDir = path.join(uiDir, 'dist');
+    }
   }
 
   // Check if UI package exists
@@ -114,10 +151,18 @@ async function buildReactUI(
   // Step 5: Generate config.json
   spinner.start('Generating UI config...');
 
+  const theme = options.uiConfig.theme
+    ? {
+        ...options.uiConfig.theme,
+        logo: await assetToDataUrl(options.uiConfig.theme.logo),
+        favicon: await assetToDataUrl(options.uiConfig.theme.favicon),
+      }
+    : undefined;
+
   const configData = {
     version: '0.1.0',
     generatedAt: new Date().toISOString(),
-    theme: options.uiConfig.theme,
+    theme,
     features: options.uiConfig.features,
     sidebar: options.uiConfig.sidebar,
   };

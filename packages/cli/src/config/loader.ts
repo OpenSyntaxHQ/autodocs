@@ -62,6 +62,16 @@ export function mergeConfig(
 }
 
 export function resolveConfigPaths(config: AutodocsConfig, configDir: string): AutodocsConfig {
+  const resolveAssetPath = (value?: string): string | undefined => {
+    if (!value) {
+      return value;
+    }
+    if (/^(https?:|data:)/.test(value) || value.startsWith('/')) {
+      return value;
+    }
+    return path.resolve(configDir, value);
+  };
+
   return {
     ...config,
     include: config.include.map((p) => path.resolve(configDir, p)),
@@ -71,5 +81,12 @@ export function resolveConfigPaths(config: AutodocsConfig, configDir: string): A
       dir: path.resolve(configDir, config.output.dir),
     },
     tsconfig: config.tsconfig ? path.resolve(configDir, config.tsconfig) : undefined,
+    theme: config.theme
+      ? {
+          ...config.theme,
+          logo: resolveAssetPath(config.theme.logo),
+          favicon: resolveAssetPath(config.theme.favicon),
+        }
+      : config.theme,
   };
 }
