@@ -15,8 +15,9 @@ export interface User {
 /**
  * Format a date
  *
- * @param date - The date to format
+ * @param {Date} date - The date to format
  * @returns Formatted date string
+ * @deprecated Use formatDateV2 instead.
  *
  * @example
  * ```typescript

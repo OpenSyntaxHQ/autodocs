@@ -11,6 +11,7 @@ export function getJSDocTags(symbol: ts.Symbol, checker: ts.TypeChecker): DocCom
   const params: Array<{ name: string; type?: string; text: string }> = [];
   let returns: string | undefined;
   let deprecated: string | undefined;
+  const paramTypes = getParamTypeMap(symbol);
 
   const jsDocTags = symbol.getJsDocTags(checker);
 
@@ -26,6 +27,12 @@ export function getJSDocTags(symbol: ts.Symbol, checker: ts.TypeChecker): DocCom
 
     if (tag.name === 'param') {
       const parsed = parseParamTag(tagText);
+      if (parsed.name && !parsed.type) {
+        const inferredType = paramTypes.get(parsed.name);
+        if (inferredType) {
+          parsed.type = inferredType;
+        }
+      }
       if (parsed.name) {
         params.push(parsed);
       }
@@ -58,6 +65,27 @@ export function getJSDocTags(symbol: ts.Symbol, checker: ts.TypeChecker): DocCom
     returns,
     deprecated,
   };
+}
+
+function getParamTypeMap(symbol: ts.Symbol): Map<string, string> {
+  const map = new Map<string, string>();
+  const declarations = symbol.getDeclarations() ?? [];
+
+  for (const declaration of declarations) {
+    const jsDocTags = ts.getJSDocTags(declaration);
+    for (const tag of jsDocTags) {
+      if (ts.isJSDocParameterTag(tag)) {
+        const name = tag.name.getText();
+        const typeNode = tag.typeExpression?.type;
+        const type = typeNode ? typeNode.getText() : undefined;
+        if (name && type) {
+          map.set(name, type);
+        }
+      }
+    }
+  }
+
+  return map;
 }
 
 function normalizeTagText(tag: ts.JSDocTagInfo): string {

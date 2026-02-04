@@ -45,7 +45,9 @@ describe('Extractor', () => {
     const formatDateFn = docs.find((d) => d.name === 'formatDate');
 
     expect(formatDateFn?.documentation?.params?.[0]?.name).toBe('date');
+    expect(formatDateFn?.documentation?.params?.[0]?.type).toBe('Date');
     expect(formatDateFn?.documentation?.returns).toContain('Formatted date string');
+    expect(formatDateFn?.documentation?.deprecated).toContain('formatDateV2');
     expect(formatDateFn?.documentation?.examples?.[0]?.code).toContain('formatDate');
   });
 
