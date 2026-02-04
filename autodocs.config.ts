@@ -21,7 +21,7 @@ export default defineConfig({
   // Documentation structure
   sidebar: [
     { title: 'Getting Started', path: '/docs/intro.md' },
-    { title: 'API Reference', autogenerate: 'src/api/' },
+    { title: 'API Reference', autogenerate: 'src/' },
     { title: 'Types', autogenerate: 'src/types/' },
   ],
 
