@@ -30,10 +30,35 @@ describe('Extractor', () => {
   it('should capture JSDoc comments', () => {
     const fixturePath = path.join(__dirname, 'fixtures/simple.ts');
     const result = createProgram([fixturePath]);
-    const docs = extractDocs(result.program);
+    const docs = extractDocs(result.program, { rootDir: path.join(__dirname, 'fixtures') });
 
     const userInterface = docs.find((d) => d.name === 'User');
 
     expect(userInterface?.documentation?.summary).toContain('user object');
+  });
+
+  it('should parse structured JSDoc tags', () => {
+    const fixturePath = path.join(__dirname, 'fixtures/simple.ts');
+    const result = createProgram([fixturePath]);
+    const docs = extractDocs(result.program, { rootDir: path.join(__dirname, 'fixtures') });
+
+    const formatDateFn = docs.find((d) => d.name === 'formatDate');
+
+    expect(formatDateFn?.documentation?.params?.[0]?.name).toBe('date');
+    expect(formatDateFn?.documentation?.returns).toContain('Formatted date string');
+    expect(formatDateFn?.documentation?.examples?.[0]?.code).toContain('formatDate');
+  });
+
+  it('should extract enum members with values', () => {
+    const fixturePath = path.join(__dirname, 'fixtures/exports.ts');
+    const result = createProgram([fixturePath]);
+    const docs = extractDocs(result.program, { rootDir: path.join(__dirname, 'fixtures') });
+
+    const exportedEnum = docs.find((d) => d.name === 'ExportedEnum');
+
+    expect(exportedEnum?.kind).toBe('enum');
+    expect(exportedEnum?.members?.length).toBeGreaterThan(0);
+    const alphaMember = exportedEnum?.members?.find((m) => m.name === 'Alpha');
+    expect(alphaMember?.value).toBe('alpha');
   });
 });

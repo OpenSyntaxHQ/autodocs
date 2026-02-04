@@ -21,4 +21,25 @@ describe('Parser', () => {
 
     expect(hasNodeModules).toBe(false);
   });
+
+  it('should only include exported symbols', () => {
+    const fixturePath = path.join(__dirname, 'fixtures/exports.ts');
+    const result = createProgram([fixturePath]);
+    const sourceFile = result.program.getSourceFile(fixturePath);
+    expect(sourceFile).toBeDefined();
+    const moduleSymbol = sourceFile
+      ? result.typeChecker.getSymbolAtLocation(sourceFile)
+      : undefined;
+    const symbols = moduleSymbol ? result.typeChecker.getExportsOfModule(moduleSymbol) : [];
+
+    const names = symbols.map((s) => s.getName());
+
+    expect(names).toContain('exportedValue');
+    expect(names).toContain('exportedFn');
+    expect(names).toContain('aliasFn');
+    expect(names).toContain('ExportedInterface');
+    expect(names).toContain('ExportedEnum');
+    expect(names).toContain('ExportedClass');
+    expect(names).not.toContain('internalThing');
+  });
 });
