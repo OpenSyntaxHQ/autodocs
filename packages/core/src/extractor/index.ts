@@ -12,9 +12,14 @@ import {
 
 export * from './types';
 
-export function extractDocs(program: ts.Program): DocEntry[] {
+interface ExtractOptions {
+  rootDir?: string;
+}
+
+export function extractDocs(program: ts.Program, options: ExtractOptions = {}): DocEntry[] {
   const output: DocEntry[] = [];
   const checker = program.getTypeChecker();
+  const seenSymbols = new Set<ts.Symbol>();
 
   for (const sourceFile of program.getSourceFiles()) {
     if (shouldSkipFile(sourceFile)) {
@@ -24,7 +29,12 @@ export function extractDocs(program: ts.Program): DocEntry[] {
     const symbols = getExportedSymbols(sourceFile, checker);
 
     for (const symbol of symbols) {
-      const entry = serializeSymbol(symbol, checker, sourceFile);
+      if (seenSymbols.has(symbol)) {
+        continue;
+      }
+      seenSymbols.add(symbol);
+
+      const entry = serializeSymbol(symbol, checker, options.rootDir);
       if (entry) {
         output.push(entry);
       }
@@ -46,7 +56,7 @@ function shouldSkipFile(sourceFile: ts.SourceFile): boolean {
 function serializeSymbol(
   symbol: ts.Symbol,
   checker: ts.TypeChecker,
-  sourceFile: ts.SourceFile
+  rootDir?: string
 ): DocEntry | null {
   const declaration = symbol.valueDeclaration || symbol.declarations?.[0];
 
@@ -54,28 +64,33 @@ function serializeSymbol(
     return null;
   }
 
+  const declarationSourceFile = declaration.getSourceFile();
+  if (shouldSkipFile(declarationSourceFile)) {
+    return null;
+  }
+
   if (ts.isInterfaceDeclaration(declaration)) {
-    return serializeInterface(symbol, checker, sourceFile);
+    return serializeInterface(symbol, checker, declarationSourceFile, rootDir);
   }
 
   if (ts.isTypeAliasDeclaration(declaration)) {
-    return serializeTypeAlias(symbol, checker, sourceFile);
+    return serializeTypeAlias(symbol, checker, declarationSourceFile, rootDir);
   }
 
   if (ts.isFunctionDeclaration(declaration)) {
-    return serializeFunction(symbol, checker, sourceFile);
+    return serializeFunction(symbol, checker, declarationSourceFile, rootDir);
   }
 
   if (ts.isClassDeclaration(declaration)) {
-    return serializeClass(symbol, checker, sourceFile);
+    return serializeClass(symbol, checker, declarationSourceFile, rootDir);
   }
 
   if (ts.isEnumDeclaration(declaration)) {
-    return serializeEnum(symbol, checker, sourceFile);
+    return serializeEnum(symbol, checker, declarationSourceFile, rootDir);
   }
 
   if (ts.isVariableDeclaration(declaration)) {
-    return serializeVariable(symbol, checker, sourceFile);
+    return serializeVariable(symbol, checker, declarationSourceFile, rootDir);
   }
 
   return null;

@@ -1,19 +1,20 @@
 import ts from 'typescript';
 import crypto from 'crypto';
+import path from 'path';
 import { DocEntry, Member, Parameter, TypeParameter, Heritage } from './types';
 import { getJSDocTags, typeToString } from './utils';
 
 export function serializeInterface(
   symbol: ts.Symbol,
   checker: ts.TypeChecker,
-  sourceFile: ts.SourceFile
+  sourceFile: ts.SourceFile,
+  rootDir?: string
 ): DocEntry {
   const declaration = (symbol.valueDeclaration ||
     symbol.declarations?.[0]) as ts.InterfaceDeclaration;
   const type = checker.getTypeAtLocation(declaration);
 
-  // Get position
-  const { line, character } = sourceFile.getLineAndCharacterOfPosition(declaration.getStart());
+  const sourceInfo = getSourceInfo(declaration, sourceFile, rootDir);
 
   // Get type parameters
   const typeParameters: TypeParameter[] = [];
@@ -67,6 +68,7 @@ export function serializeInterface(
           ? true
           : false,
       documentation: ts.displayPartsToString(prop.getDocumentationComment(checker)),
+      kind: 'property',
     });
   }
 
@@ -74,8 +76,14 @@ export function serializeInterface(
     id: generateId(symbol.getName()),
     name: symbol.getName(),
     kind: 'interface',
-    fileName: sourceFile.fileName,
-    position: { line: line + 1, column: character },
+    fileName: sourceInfo.file,
+    module: sourceInfo.module,
+    source: {
+      file: sourceInfo.file,
+      line: sourceInfo.line,
+      column: sourceInfo.column,
+    },
+    position: { line: sourceInfo.line, column: sourceInfo.column },
     signature: generateInterfaceSignature(declaration, checker),
     documentation: getJSDocTags(symbol, checker),
     typeParameters: typeParameters.length > 0 ? typeParameters : undefined,
@@ -87,13 +95,14 @@ export function serializeInterface(
 export function serializeTypeAlias(
   symbol: ts.Symbol,
   checker: ts.TypeChecker,
-  sourceFile: ts.SourceFile
+  sourceFile: ts.SourceFile,
+  rootDir?: string
 ): DocEntry {
   const declaration = (symbol.valueDeclaration ||
     symbol.declarations?.[0]) as ts.TypeAliasDeclaration;
   const type = checker.getTypeAtLocation(declaration);
 
-  const { line, character } = sourceFile.getLineAndCharacterOfPosition(declaration.getStart());
+  const sourceInfo = getSourceInfo(declaration, sourceFile, rootDir);
 
   const typeParameters: TypeParameter[] = [];
   if (declaration.typeParameters) {
@@ -114,8 +123,14 @@ export function serializeTypeAlias(
     id: generateId(symbol.getName()),
     name: symbol.getName(),
     kind: 'type',
-    fileName: sourceFile.fileName,
-    position: { line: line + 1, column: character },
+    fileName: sourceInfo.file,
+    module: sourceInfo.module,
+    source: {
+      file: sourceInfo.file,
+      line: sourceInfo.line,
+      column: sourceInfo.column,
+    },
+    position: { line: sourceInfo.line, column: sourceInfo.column },
     signature: `type ${symbol.getName()} = ${typeToString(type, checker)}`,
     documentation: getJSDocTags(symbol, checker),
     typeParameters: typeParameters.length > 0 ? typeParameters : undefined,
@@ -125,12 +140,13 @@ export function serializeTypeAlias(
 export function serializeFunction(
   symbol: ts.Symbol,
   checker: ts.TypeChecker,
-  sourceFile: ts.SourceFile
+  sourceFile: ts.SourceFile,
+  rootDir?: string
 ): DocEntry {
   const declaration = (symbol.valueDeclaration ||
     symbol.declarations?.[0]) as ts.FunctionDeclaration;
 
-  const { line, character } = sourceFile.getLineAndCharacterOfPosition(declaration.getStart());
+  const sourceInfo = getSourceInfo(declaration, sourceFile, rootDir);
 
   const signature = checker.getSignatureFromDeclaration(declaration);
 
@@ -160,8 +176,14 @@ export function serializeFunction(
     id: generateId(symbol.getName()),
     name: symbol.getName(),
     kind: 'function',
-    fileName: sourceFile.fileName,
-    position: { line: line + 1, column: character },
+    fileName: sourceInfo.file,
+    module: sourceInfo.module,
+    source: {
+      file: sourceInfo.file,
+      line: sourceInfo.line,
+      column: sourceInfo.column,
+    },
+    position: { line: sourceInfo.line, column: sourceInfo.column },
     signature: generateFunctionSignature(declaration, checker),
     documentation: getJSDocTags(symbol, checker),
     parameters,
@@ -175,11 +197,12 @@ export function serializeFunction(
 export function serializeClass(
   symbol: ts.Symbol,
   checker: ts.TypeChecker,
-  sourceFile: ts.SourceFile
+  sourceFile: ts.SourceFile,
+  rootDir?: string
 ): DocEntry {
   const declaration = (symbol.valueDeclaration || symbol.declarations?.[0]) as ts.ClassDeclaration;
 
-  const { line, character } = sourceFile.getLineAndCharacterOfPosition(declaration.getStart());
+  const sourceInfo = getSourceInfo(declaration, sourceFile, rootDir);
 
   // Get type parameters
   const typeParameters: TypeParameter[] = [];
@@ -218,7 +241,6 @@ export function serializeClass(
   // Get members
   const members: Member[] = [];
 
-  // declaration.members is typically defined if it is a class declaration
   for (const member of declaration.members) {
     if (ts.isPropertyDeclaration(member) || ts.isMethodDeclaration(member)) {
       const memberName = member.name.getText();
@@ -238,6 +260,7 @@ export function serializeClass(
         optional: (memberSymbol.flags & ts.SymbolFlags.Optional) !== 0,
         readonly: member.modifiers?.some((m) => m.kind === ts.SyntaxKind.ReadonlyKeyword) || false,
         documentation: ts.displayPartsToString(memberSymbol.getDocumentationComment(checker)),
+        kind: ts.isMethodDeclaration(member) ? 'method' : 'property',
       });
     }
   }
@@ -246,8 +269,14 @@ export function serializeClass(
     id: generateId(symbol.getName()),
     name: symbol.getName(),
     kind: 'class',
-    fileName: sourceFile.fileName,
-    position: { line: line + 1, column: character },
+    fileName: sourceInfo.file,
+    module: sourceInfo.module,
+    source: {
+      file: sourceInfo.file,
+      line: sourceInfo.line,
+      column: sourceInfo.column,
+    },
+    position: { line: sourceInfo.line, column: sourceInfo.column },
     signature: `class ${symbol.getName()}`,
     documentation: getJSDocTags(symbol, checker),
     typeParameters: typeParameters.length > 0 ? typeParameters : undefined,
@@ -259,40 +288,74 @@ export function serializeClass(
 export function serializeEnum(
   symbol: ts.Symbol,
   checker: ts.TypeChecker,
-  sourceFile: ts.SourceFile
+  sourceFile: ts.SourceFile,
+  rootDir?: string
 ): DocEntry {
   const declaration = (symbol.valueDeclaration || symbol.declarations?.[0]) as ts.EnumDeclaration;
 
-  const { line, character } = sourceFile.getLineAndCharacterOfPosition(declaration.getStart());
+  const sourceInfo = getSourceInfo(declaration, sourceFile, rootDir);
+
+  const members: Member[] = declaration.members.map((member) => {
+    const memberName = member.name.getText();
+    const memberSymbol = checker.getSymbolAtLocation(member.name);
+    const constantValue = checker.getConstantValue(member);
+    const initializerText = member.initializer ? member.initializer.getText() : undefined;
+
+    return {
+      name: memberName,
+      type: 'enum',
+      optional: false,
+      readonly: true,
+      documentation: memberSymbol
+        ? ts.displayPartsToString(memberSymbol.getDocumentationComment(checker))
+        : undefined,
+      kind: 'enum',
+      value: constantValue !== undefined ? String(constantValue) : initializerText,
+    };
+  });
 
   return {
     id: generateId(symbol.getName()),
     name: symbol.getName(),
     kind: 'enum',
-    fileName: sourceFile.fileName,
-    position: { line: line + 1, column: character },
+    fileName: sourceInfo.file,
+    module: sourceInfo.module,
+    source: {
+      file: sourceInfo.file,
+      line: sourceInfo.line,
+      column: sourceInfo.column,
+    },
+    position: { line: sourceInfo.line, column: sourceInfo.column },
     signature: `enum ${symbol.getName()}`,
     documentation: getJSDocTags(symbol, checker),
+    members: members.length > 0 ? members : undefined,
   };
 }
 
 export function serializeVariable(
   symbol: ts.Symbol,
   checker: ts.TypeChecker,
-  sourceFile: ts.SourceFile
+  sourceFile: ts.SourceFile,
+  rootDir?: string
 ): DocEntry {
   const declaration = (symbol.valueDeclaration ||
     symbol.declarations?.[0]) as ts.VariableDeclaration;
   const type = checker.getTypeAtLocation(declaration);
 
-  const { line, character } = sourceFile.getLineAndCharacterOfPosition(declaration.getStart());
+  const sourceInfo = getSourceInfo(declaration, sourceFile, rootDir);
 
   return {
     id: generateId(symbol.getName()),
     name: symbol.getName(),
     kind: 'variable',
-    fileName: sourceFile.fileName,
-    position: { line: line + 1, column: character },
+    fileName: sourceInfo.file,
+    module: sourceInfo.module,
+    source: {
+      file: sourceInfo.file,
+      line: sourceInfo.line,
+      column: sourceInfo.column,
+    },
+    position: { line: sourceInfo.line, column: sourceInfo.column },
     signature: `const ${symbol.getName()}: ${typeToString(type, checker)}`,
     documentation: getJSDocTags(symbol, checker),
   };
@@ -331,4 +394,32 @@ function generateFunctionSignature(
   const returnType = declaration.type ? declaration.type.getText() : 'void';
 
   return `function ${name}(${params}): ${returnType}`;
+}
+
+function getSourceInfo(
+  declaration: ts.Node,
+  sourceFile: ts.SourceFile,
+  rootDir?: string
+): { file: string; line: number; column: number; module: string } {
+  const { line, character } = sourceFile.getLineAndCharacterOfPosition(declaration.getStart());
+  const file = toRelativePath(sourceFile.fileName, rootDir);
+
+  return {
+    file,
+    line: line + 1,
+    column: character,
+    module: getModuleName(file),
+  };
+}
+
+function toRelativePath(fileName: string, rootDir?: string): string {
+  if (!rootDir) {
+    return fileName;
+  }
+
+  return path.relative(rootDir, fileName).replace(/\\/g, '/');
+}
+
+function getModuleName(fileName: string): string {
+  return fileName.replace(/\\/g, '/').replace(/\.[^/.]+$/, '');
 }

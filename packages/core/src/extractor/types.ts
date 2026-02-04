@@ -5,6 +5,8 @@ export interface DocEntry {
   name: string;
   kind: DocKind;
   fileName: string;
+  module?: string;
+  source?: SourceLocation;
   position: { line: number; column: number };
   signature: string;
   documentation?: DocComment;
@@ -17,11 +19,20 @@ export interface DocEntry {
   references?: Reference[];
 }
 
+export interface SourceLocation {
+  file: string;
+  line: number;
+  column: number;
+}
+
 export interface DocComment {
   summary: string;
   description?: string;
   tags: DocTag[];
   examples?: CodeExample[];
+  params?: DocParam[];
+  returns?: string;
+  deprecated?: string;
 }
 
 export interface DocTag {
@@ -29,6 +40,12 @@ export interface DocTag {
   text: string;
   type?: string;
   paramName?: string;
+}
+
+export interface DocParam {
+  name: string;
+  type?: string;
+  text: string;
 }
 
 export interface TypeParameter {
@@ -43,6 +60,8 @@ export interface Member {
   optional: boolean;
   readonly: boolean;
   documentation?: string;
+  kind?: 'property' | 'method' | 'enum';
+  value?: string;
 }
 
 export interface Parameter {
