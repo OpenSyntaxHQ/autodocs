@@ -82,6 +82,10 @@ function generateEntryMarkdown(entry: DocEntry): string {
     md += `${entry.documentation.summary}\n\n`;
   }
 
+  if (entry.documentation?.deprecated) {
+    md += `> **Deprecated**: ${entry.documentation.deprecated}\n\n`;
+  }
+
   // Signature
   md += '## Signature\n\n';
   md += '```typescript\n';
@@ -101,26 +105,40 @@ function generateEntryMarkdown(entry: DocEntry): string {
 
   // Members
   if (entry.members && entry.members.length > 0) {
-    md += '## Properties\n\n';
-    md += '| Name | Type | Optional | Readonly | Description |\n';
-    md += '|------|------|----------|----------|-------------|\n';
-    entry.members.forEach((m) => {
-      md += `| \`${m.name}\` | \`${m.type}\` | ${m.optional ? 'Yes' : 'No'} | ${
-        m.readonly ? 'Yes' : 'No'
-      } | ${m.documentation || '-'} |\n`;
-    });
-    md += '\n';
+    if (entry.kind === 'enum') {
+      md += '## Members\n\n';
+      md += '| Name | Value | Description |\n';
+      md += '|------|-------|-------------|\n';
+      entry.members.forEach((m) => {
+        md += `| \`${m.name}\` | ${m.value ? `\`${m.value}\`` : '-'} | ${
+          m.documentation || '-'
+        } |\n`;
+      });
+      md += '\n';
+    } else {
+      md += '## Properties\n\n';
+      md += '| Name | Type | Optional | Readonly | Description |\n';
+      md += '|------|------|----------|----------|-------------|\n';
+      entry.members.forEach((m) => {
+        md += `| \`${m.name}\` | \`${m.type}\` | ${m.optional ? 'Yes' : 'No'} | ${
+          m.readonly ? 'Yes' : 'No'
+        } | ${m.documentation || '-'} |\n`;
+      });
+      md += '\n';
+    }
   }
 
   // Parameters
   if (entry.parameters && entry.parameters.length > 0) {
+    const paramDocs = new Map(entry.documentation?.params?.map((p) => [p.name, p]) || []);
     md += '## Parameters\n\n';
     md += '| Name | Type | Optional | Default | Description |\n';
     md += '|------|------|----------|---------|-------------|\n';
     entry.parameters.forEach((p) => {
+      const doc = p.documentation || paramDocs.get(p.name)?.text || '-';
       md += `| \`${p.name}\` | \`${p.type}\` | ${p.optional ? 'Yes' : 'No'} | ${
         p.defaultValue || '-'
-      } | ${p.documentation || '-'} |\n`;
+      } | ${doc} |\n`;
     });
     md += '\n';
   }
@@ -129,6 +147,9 @@ function generateEntryMarkdown(entry: DocEntry): string {
   if (entry.returnType) {
     md += '## Returns\n\n';
     md += `\`${entry.returnType.text}\`\n\n`;
+    if (entry.documentation?.returns) {
+      md += `${entry.documentation.returns}\n\n`;
+    }
   }
 
   // Examples
@@ -144,8 +165,10 @@ function generateEntryMarkdown(entry: DocEntry): string {
 
   // Source
   md += '## Source\n\n';
-  md += `File: \`${entry.fileName}\`\n`;
-  md += `Line: ${entry.position.line.toString()}\n\n`;
+  const sourceFile = entry.source?.file || entry.fileName;
+  const sourceLine = entry.source?.line ?? entry.position.line;
+  md += `File: \`${sourceFile}\`\n`;
+  md += `Line: ${sourceLine.toString()}\n\n`;
 
   return md;
 }

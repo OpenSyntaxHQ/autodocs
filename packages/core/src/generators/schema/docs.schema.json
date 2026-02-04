@@ -1,0 +1,183 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Autodocs Documentation Schema",
+  "type": "object",
+  "required": ["meta", "entries"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["version", "generatedAt", "stats"],
+      "properties": {
+        "version": { "type": "string" },
+        "generatedAt": { "type": "string" },
+        "rootDir": { "type": ["string", "null"] },
+        "stats": {
+          "type": "object",
+          "required": ["total", "byKind", "byModule"],
+          "properties": {
+            "total": { "type": "number" },
+            "byKind": { "type": "object", "additionalProperties": { "type": "number" } },
+            "byModule": { "type": "object", "additionalProperties": { "type": "number" } }
+          }
+        }
+      }
+    },
+    "entries": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/docEntry" }
+    }
+  },
+  "definitions": {
+    "docEntry": {
+      "type": "object",
+      "required": ["id", "name", "kind", "fileName", "position", "signature"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "kind": {
+          "type": "string",
+          "enum": ["interface", "type", "class", "function", "enum", "variable"]
+        },
+        "fileName": { "type": "string" },
+        "module": { "type": "string" },
+        "source": { "$ref": "#/definitions/sourceLocation" },
+        "position": {
+          "type": "object",
+          "required": ["line", "column"],
+          "properties": {
+            "line": { "type": "number" },
+            "column": { "type": "number" }
+          }
+        },
+        "signature": { "type": "string" },
+        "documentation": { "$ref": "#/definitions/docComment" },
+        "typeParameters": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/typeParameter" }
+        },
+        "members": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/member" }
+        },
+        "parameters": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/parameter" }
+        },
+        "returnType": { "$ref": "#/definitions/typeInfo" },
+        "heritage": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/heritage" }
+        }
+      }
+    },
+    "sourceLocation": {
+      "type": "object",
+      "required": ["file", "line", "column"],
+      "properties": {
+        "file": { "type": "string" },
+        "line": { "type": "number" },
+        "column": { "type": "number" }
+      }
+    },
+    "docComment": {
+      "type": "object",
+      "required": ["summary", "tags"],
+      "properties": {
+        "summary": { "type": "string" },
+        "description": { "type": "string" },
+        "tags": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/docTag" }
+        },
+        "examples": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/codeExample" }
+        },
+        "params": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/docParam" }
+        },
+        "returns": { "type": "string" },
+        "deprecated": { "type": "string" }
+      }
+    },
+    "docTag": {
+      "type": "object",
+      "required": ["name", "text"],
+      "properties": {
+        "name": { "type": "string" },
+        "text": { "type": "string" },
+        "type": { "type": "string" },
+        "paramName": { "type": "string" }
+      }
+    },
+    "docParam": {
+      "type": "object",
+      "required": ["name", "text"],
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "text": { "type": "string" }
+      }
+    },
+    "typeParameter": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "constraint": { "type": "string" },
+        "default": { "type": "string" }
+      }
+    },
+    "member": {
+      "type": "object",
+      "required": ["name", "type", "optional", "readonly"],
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "optional": { "type": "boolean" },
+        "readonly": { "type": "boolean" },
+        "documentation": { "type": "string" },
+        "kind": { "type": "string" },
+        "value": { "type": "string" }
+      }
+    },
+    "parameter": {
+      "type": "object",
+      "required": ["name", "type", "optional", "rest"],
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "optional": { "type": "boolean" },
+        "defaultValue": { "type": "string" },
+        "rest": { "type": "boolean" },
+        "documentation": { "type": "string" }
+      }
+    },
+    "typeInfo": {
+      "type": "object",
+      "required": ["text", "kind"],
+      "properties": {
+        "text": { "type": "string" },
+        "kind": { "type": "string" }
+      }
+    },
+    "heritage": {
+      "type": "object",
+      "required": ["id", "name", "kind"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "kind": { "type": "string" }
+      }
+    },
+    "codeExample": {
+      "type": "object",
+      "required": ["code", "language"],
+      "properties": {
+        "code": { "type": "string" },
+        "language": { "type": "string" }
+      }
+    }
+  }
+}

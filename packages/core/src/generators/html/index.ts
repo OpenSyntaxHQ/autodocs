@@ -111,21 +111,32 @@ function generateDetailPage(entry: DocEntry): string {
   
   <main>
     ${entry.documentation?.summary ? `<p class="description">${escapeHtml(entry.documentation.summary)}</p>` : ''}
+    ${entry.documentation?.deprecated ? `<p class="deprecated">Deprecated: ${escapeHtml(entry.documentation.deprecated)}</p>` : ''}
     
     <section>
       <h2>Signature</h2>
       <pre><code>${escapeHtml(entry.signature)}</code></pre>
     </section>
     
-    ${entry.members && entry.members.length > 0 ? generateMembersSection(entry.members) : ''}
-    ${entry.parameters && entry.parameters.length > 0 ? generateParametersSection(entry.parameters) : ''}
-    ${entry.returnType ? `<section><h2>Returns</h2><code>${escapeHtml(entry.returnType.text)}</code></section>` : ''}
+    ${
+      entry.kind === 'enum' && entry.members && entry.members.length > 0
+        ? generateEnumMembersSection(entry.members)
+        : entry.members && entry.members.length > 0
+          ? generateMembersSection(entry.members)
+          : ''
+    }
+    ${entry.parameters && entry.parameters.length > 0 ? generateParametersSection(entry.parameters, entry.documentation?.params) : ''}
+    ${
+      entry.returnType
+        ? `<section><h2>Returns</h2><code>${escapeHtml(entry.returnType.text)}</code>${entry.documentation?.returns ? `<p>${escapeHtml(entry.documentation.returns)}</p>` : ''}</section>`
+        : ''
+    }
     ${entry.documentation?.examples ? generateExamplesSection(entry.documentation.examples) : ''}
     
     <section>
       <h2>Source</h2>
-      <p>File: <code>${escapeHtml(entry.fileName)}</code></p>
-      <p>Line: ${entry.position.line.toString()}</p>
+      <p>File: <code>${escapeHtml(entry.source?.file || entry.fileName)}</code></p>
+      <p>Line: ${(entry.source?.line ?? entry.position.line).toString()}</p>
     </section>
   </main>
 </body>
@@ -164,7 +175,12 @@ function generateMembersSection(members: Member[]): string {
   </section>`;
 }
 
-function generateParametersSection(parameters: Parameter[]): string {
+function generateParametersSection(
+  parameters: Parameter[],
+  paramDocs?: Array<{ name: string; text: string }>
+): string {
+  const docsMap = new Map(paramDocs?.map((doc) => [doc.name, doc.text]) || []);
+
   return `<section>
     <h2>Parameters</h2>
     <table>
@@ -184,7 +200,35 @@ function generateParametersSection(parameters: Parameter[]): string {
           <td><code>${escapeHtml(p.name)}</code></td>
           <td><code>${escapeHtml(p.type)}</code></td>
           <td>${p.optional ? 'Yes' : 'No'}</td>
-          <td>${p.documentation ? escapeHtml(p.documentation) : '-'}</td>
+          <td>${p.documentation ? escapeHtml(p.documentation) : docsMap.get(p.name) ? escapeHtml(docsMap.get(p.name) || '') : '-'}</td>
+        </tr>
+        `
+          )
+          .join('')}
+      </tbody>
+    </table>
+  </section>`;
+}
+
+function generateEnumMembersSection(members: Member[]): string {
+  return `<section>
+    <h2>Members</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Value</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${members
+          .map(
+            (m) => `
+        <tr>
+          <td><code>${escapeHtml(m.name)}</code></td>
+          <td>${m.value ? `<code>${escapeHtml(m.value)}</code>` : '-'}</td>
+          <td>${m.documentation ? escapeHtml(m.documentation) : '-'}</td>
         </tr>
         `
           )

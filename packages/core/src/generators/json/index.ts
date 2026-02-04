@@ -5,6 +5,7 @@ import { DocEntry } from '../../extractor';
 export interface JsonGeneratorOptions {
   pretty?: boolean;
   splitByModule?: boolean;
+  rootDir?: string;
 }
 
 export async function generateJson(
@@ -14,14 +15,15 @@ export async function generateJson(
 ): Promise<void> {
   await fs.mkdir(outputDir, { recursive: true });
 
+  const normalizedDocs = normalizeDocs(docs, options.rootDir);
+
   if (options.splitByModule) {
-    await generateSplitJson(docs, outputDir, options);
+    await generateSplitJson(normalizedDocs, outputDir, options);
   } else {
-    await generateSingleJson(docs, outputDir, options);
+    await generateSingleJson(normalizedDocs, outputDir, options);
   }
 
-  // Generate index
-  await generateIndexJson(docs, outputDir);
+  await generateIndexJson(normalizedDocs, outputDir);
 }
 
 async function generateSingleJson(
@@ -29,9 +31,14 @@ async function generateSingleJson(
   outputDir: string,
   options: JsonGeneratorOptions
 ): Promise<void> {
+  const stats = computeStats(docs);
   const output = {
-    version: '0.1.0',
-    generatedAt: new Date().toISOString(),
+    meta: {
+      version: '0.1.0',
+      generatedAt: new Date().toISOString(),
+      rootDir: options.rootDir,
+      stats,
+    },
     entries: docs,
   };
 
@@ -44,21 +51,16 @@ async function generateSplitJson(
   outputDir: string,
   options: JsonGeneratorOptions
 ): Promise<void> {
-  // Group by module
   const byModule = new Map<string, DocEntry[]>();
 
   for (const entry of docs) {
-    const module = getModuleName(entry.fileName);
+    const module = entry.module || getModuleName(entry.fileName);
     if (!byModule.has(module)) {
       byModule.set(module, []);
     }
-    const list = byModule.get(module);
-    if (list) {
-      list.push(entry);
-    }
+    byModule.get(module)?.push(entry);
   }
 
-  // Generate file per module
   for (const [module, entries] of byModule) {
     const output = {
       module,
@@ -72,30 +74,71 @@ async function generateSplitJson(
 }
 
 async function generateIndexJson(docs: DocEntry[], outputDir: string): Promise<void> {
+  const stats = computeStats(docs);
   const index = {
-    total: docs.length,
-    byKind: {} as Record<string, number>,
-    byModule: {} as Record<string, number>,
+    total: stats.total,
+    byKind: stats.byKind,
+    byModule: stats.byModule,
     entries: docs.map((d) => ({
       id: d.id,
       name: d.name,
       kind: d.kind,
-      module: getModuleName(d.fileName),
+      module: d.module || getModuleName(d.fileName),
+      source: d.source,
     })),
   };
 
-  // Count by kind
-  docs.forEach((d) => {
-    index.byKind[d.kind] = (index.byKind[d.kind] || 0) + 1;
-  });
-
-  // Count by module
-  docs.forEach((d) => {
-    const module = getModuleName(d.fileName);
-    index.byModule[module] = (index.byModule[module] || 0) + 1;
-  });
-
   await fs.writeFile(path.join(outputDir, 'index.json'), JSON.stringify(index, null, 2), 'utf-8');
+}
+
+function normalizeDocs(docs: DocEntry[], rootDir?: string): DocEntry[] {
+  return docs.map((doc) => {
+    const fileName =
+      rootDir && path.isAbsolute(doc.fileName)
+        ? toRelativePath(doc.fileName, rootDir)
+        : doc.fileName;
+    const moduleName = doc.module || getModuleName(fileName);
+
+    return {
+      ...doc,
+      fileName,
+      module: moduleName,
+      source: doc.source
+        ? {
+            ...doc.source,
+            file:
+              rootDir && path.isAbsolute(doc.source.file)
+                ? toRelativePath(doc.source.file, rootDir)
+                : doc.source.file,
+          }
+        : doc.source,
+    };
+  });
+}
+
+function computeStats(docs: DocEntry[]): {
+  total: number;
+  byKind: Record<string, number>;
+  byModule: Record<string, number>;
+} {
+  const byKind: Record<string, number> = {};
+  const byModule: Record<string, number> = {};
+
+  for (const entry of docs) {
+    byKind[entry.kind] = (byKind[entry.kind] || 0) + 1;
+    const moduleName = entry.module || getModuleName(entry.fileName);
+    byModule[moduleName] = (byModule[moduleName] || 0) + 1;
+  }
+
+  return {
+    total: docs.length,
+    byKind,
+    byModule,
+  };
+}
+
+function toRelativePath(fileName: string, rootDir: string): string {
+  return path.relative(rootDir, fileName).replace(/\\/g, '/');
 }
 
 function getModuleName(fileName: string): string {
