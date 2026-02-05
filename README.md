@@ -21,6 +21,28 @@ npx autodocs init
 npx autodocs build
 ```
 
+## Caching & Watch Mode
+
+Autodocs supports incremental builds with a persistent cache and a watch mode for fast feedback.
+
+```bash
+# Clean cache and run a full build
+rm -rf .autodocs-cache
+npx autodocs build
+
+# Watch for changes and update docs.json without rebuilding UI assets
+npx autodocs watch
+```
+
+Config options:
+
+```ts
+export default defineConfig({
+  cache: true,
+  cacheDir: '.autodocs-cache',
+});
+```
+
 ## Development
 
 ```bash
