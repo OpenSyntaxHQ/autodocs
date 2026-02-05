@@ -3,7 +3,7 @@ import path from 'path';
 import matter from 'gray-matter';
 import { marked } from 'marked';
 import { glob } from 'glob';
-import { Plugin, PluginContext, DocEntry } from '@opensyntaxhq/autodocs-core';
+import { Plugin, PluginContext, DocEntry, VERSION } from '@opensyntaxhq/autodocs-core';
 
 export interface MarkdownPluginOptions {
   sourceDir: string;
@@ -23,7 +23,7 @@ export default function markdownPlugin(options: MarkdownPluginOptions): Plugin {
 
   return {
     name: '@opensyntaxhq/autodocs-plugin-markdown',
-    version: '0.1.0',
+    version: VERSION,
 
     async initialize(context: PluginContext) {
       context.logger.info('Initializing markdown plugin');
