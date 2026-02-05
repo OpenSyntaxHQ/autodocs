@@ -1,4 +1,5 @@
 import ts from 'typescript';
+import path from 'path';
 import { DocEntry } from './types';
 import { getExportedSymbols } from '../parser/utils';
 import {
@@ -23,6 +24,43 @@ export function extractDocs(program: ts.Program, options: ExtractOptions = {}): 
 
   for (const sourceFile of program.getSourceFiles()) {
     if (shouldSkipFile(sourceFile)) {
+      continue;
+    }
+
+    const symbols = getExportedSymbols(sourceFile, checker);
+
+    for (const symbol of symbols) {
+      if (seenSymbols.has(symbol)) {
+        continue;
+      }
+      seenSymbols.add(symbol);
+
+      const entry = serializeSymbol(symbol, checker, options.rootDir);
+      if (entry) {
+        output.push(entry);
+      }
+    }
+  }
+
+  return output;
+}
+
+export function extractDocsFromFiles(
+  program: ts.Program,
+  files: string[],
+  options: ExtractOptions = {}
+): DocEntry[] {
+  const output: DocEntry[] = [];
+  const checker = program.getTypeChecker();
+  const seenSymbols = new Set<ts.Symbol>();
+  const normalized = new Set(files.map((file) => path.normalize(path.resolve(file))));
+
+  for (const sourceFile of program.getSourceFiles()) {
+    if (shouldSkipFile(sourceFile)) {
+      continue;
+    }
+
+    if (!normalized.has(path.normalize(path.resolve(sourceFile.fileName)))) {
       continue;
     }
 

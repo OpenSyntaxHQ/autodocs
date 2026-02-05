@@ -1,7 +1,7 @@
 export { createProgram, resolveModules, getDependencies } from './parser';
 export type { ParserOptions, ParseResult } from './parser';
 
-export { extractDocs } from './extractor';
+export { extractDocs, extractDocsFromFiles } from './extractor';
 export type {
   DocEntry,
   DocKind,
@@ -21,4 +21,8 @@ export * from './generators';
 export { PluginManager } from './plugins';
 export type { Plugin, PluginContext, Logger } from './plugins';
 
-export const VERSION = '0.1.0';
+export { FileCache } from './cache/FileCache';
+export { incrementalBuild } from './cache/incremental';
+export type { CacheEntry, CacheMetadata, CacheOptions } from './cache/types';
+
+export { VERSION } from './version';
