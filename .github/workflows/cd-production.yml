@@ -28,6 +28,16 @@ jobs:
         run: npm ci
       - name: Build docs site
         run: npm run docs:build
+      - name: Verify Netlify credentials
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
+            "https://api.netlify.com/api/v1/sites/$NETLIFY_SITE_ID")
+          echo "Netlify API status: $code"
+          test "$code" = "200"
       - name: Deploy to Netlify (Production)
         id: deploy
         uses: nwtgck/actions-netlify@v3.0
