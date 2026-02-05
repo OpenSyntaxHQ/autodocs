@@ -84,7 +84,7 @@ jobs:
       - name: Build packages
         run: npm run build
       - name: Run tests with coverage
-        run: npm run test -- --coverage --maxWorkers=2
+        run: npm run test -- -- --coverage --maxWorkers=2
       - name: Build docs site
         run: npm run docs:build
       - name: Upload coverage to Codecov
