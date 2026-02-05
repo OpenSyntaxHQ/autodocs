@@ -1,30 +1,42 @@
 import { defineConfig } from '@opensyntaxhq/autodocs';
 
 export default defineConfig({
-  // Entry points to document
   include: ['packages/**/*.ts', 'packages/**/*.tsx'],
   exclude: ['**/*.test.ts', '**/*.spec.ts'],
-
-  // Output settings
   output: {
     dir: './docs-dist',
-    format: 'static', // or 'json' for custom UI
+    format: 'static',
+    clean: true,
   },
-
-  // UI customization
   theme: {
-    name: 'default', // or 'minimal', 'corporate'
+    name: 'default',
     primaryColor: '#6366f1',
-    logo: './assets/logo.svg',
   },
-
-  // Documentation structure
+  features: {
+    search: true,
+    darkMode: true,
+    examples: true,
+  },
   sidebar: [
     { title: 'Getting Started', path: '/docs/intro.md' },
     { title: 'API Reference', autogenerate: 'src/' },
     { title: 'Types', autogenerate: 'src/types/' },
   ],
-
-  // Plugins
-  plugins: ['@opensyntaxhq/autodocs-plugin-markdown', '@opensyntaxhq/autodocs-plugin-examples'],
+  plugins: [
+    {
+      name: '@opensyntaxhq/autodocs-plugin-markdown',
+      options: {
+        sourceDir: 'docs',
+        patterns: ['**/*.md'],
+        frontMatter: true,
+      },
+    },
+    {
+      name: '@opensyntaxhq/autodocs-plugin-examples',
+      options: {
+        validate: true,
+        outputDir: './examples',
+      },
+    },
+  ],
 });
