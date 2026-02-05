@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type DocKind = 'interface' | 'type' | 'class' | 'function' | 'enum' | 'variable';
+export type DocKind = 'interface' | 'type' | 'class' | 'function' | 'enum' | 'variable' | 'guide';
 
 export interface DocParam {
   name: string;
@@ -36,6 +36,7 @@ export interface DocEntry {
   };
   signature: string;
   documentation?: DocComment;
+  metadata?: Record<string, unknown>;
   typeParameters?: Array<{
     name: string;
     constraint?: string;

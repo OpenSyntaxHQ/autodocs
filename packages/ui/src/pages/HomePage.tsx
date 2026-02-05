@@ -43,7 +43,22 @@ export function HomePage() {
   const totalEntries = docs.length;
   const kindCount = Object.keys(grouped).length;
   const moduleCount = new Set(docs.map((doc) => doc.module || getModuleName(doc.fileName))).size;
-  const firstDoc = docs[0];
+  const kindPriority: DocEntry['kind'][] = [
+    'function',
+    'class',
+    'interface',
+    'type',
+    'enum',
+    'variable',
+    'guide',
+  ];
+
+  const firstDoc =
+    kindPriority
+      .map((kind) =>
+        docs.filter((doc) => doc.kind === kind).sort((a, b) => a.name.localeCompare(b.name))
+      )
+      .find((list) => list.length > 0)?.[0] ?? docs[0];
   const kindEntries = Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
   const searchEnabled = config?.features?.search !== false;
   const logoSrc = config?.theme?.logo || defaultLogo;
