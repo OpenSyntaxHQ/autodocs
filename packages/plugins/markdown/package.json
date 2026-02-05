@@ -13,14 +13,24 @@
     }
   },
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "build": "tsup",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
+  "dependencies": {
+    "glob": "^11.0.0",
+    "gray-matter": "^4.0.3",
+    "marked": "^15.0.0"
+  },
+  "peerDependencies": {
+    "@opensyntaxhq/autodocs-core": "*"
+  },
   "devDependencies": {
-    "tsup": "^8.0.0",
+    "@opensyntaxhq/autodocs-core": "*",
+    "@types/node": "^22.0.0",
+    "tsup": "^8.3.0",
     "typescript": "^5.9.0"
   }
 }
