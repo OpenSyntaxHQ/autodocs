@@ -2,7 +2,7 @@ import fs from 'fs/promises';
 import os from 'os';
 import path from 'path';
 import ts from 'typescript';
-import { Plugin, DocEntry, CodeExample } from '@opensyntaxhq/autodocs-core';
+import { Plugin, DocEntry, CodeExample, VERSION } from '@opensyntaxhq/autodocs-core';
 
 export interface ExamplesPluginOptions {
   validate?: boolean;
@@ -23,7 +23,7 @@ export default function examplesPlugin(options: ExamplesPluginOptions = {}): Plu
 
   return {
     name: '@opensyntaxhq/autodocs-plugin-examples',
-    version: '0.1.0',
+    version: VERSION,
 
     async afterExtract(docs: DocEntry[]) {
       for (const entry of docs) {

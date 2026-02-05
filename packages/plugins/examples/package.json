@@ -1,10 +1,32 @@
 {
   "name": "@opensyntaxhq/autodocs-plugin-examples",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "license": "Apache-2.0",
+  "description": "Code example validation and extraction plugin for Autodocs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OpenSyntaxHQ/autodocs.git",
+    "directory": "packages/plugins/examples"
+  },
+  "bugs": {
+    "url": "https://github.com/OpenSyntaxHQ/autodocs/issues"
+  },
+  "homepage": "https://github.com/OpenSyntaxHQ/autodocs",
+  "keywords": [
+    "autodocs",
+    "plugin",
+    "examples",
+    "documentation"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -23,10 +45,10 @@
     "typescript": "^5.9.0"
   },
   "peerDependencies": {
-    "@opensyntaxhq/autodocs-core": "*"
+    "@opensyntaxhq/autodocs-core": "^1.0.0"
   },
   "devDependencies": {
-    "@opensyntaxhq/autodocs-core": "*",
+    "@opensyntaxhq/autodocs-core": "^1.0.0",
     "@types/node": "^22.0.0",
     "tsup": "^8.3.0"
   }
