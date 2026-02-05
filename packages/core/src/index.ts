@@ -18,4 +18,7 @@ export type {
 
 export * from './generators';
 
+export { PluginManager } from './plugins';
+export type { Plugin, PluginContext, Logger } from './plugins';
+
 export const VERSION = '0.1.0';

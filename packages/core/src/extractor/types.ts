@@ -1,4 +1,4 @@
-export type DocKind = 'interface' | 'type' | 'class' | 'function' | 'enum' | 'variable';
+export type DocKind = 'interface' | 'type' | 'class' | 'function' | 'enum' | 'variable' | 'guide';
 
 export interface DocEntry {
   id: string;
@@ -10,6 +10,7 @@ export interface DocEntry {
   position: { line: number; column: number };
   signature: string;
   documentation?: DocComment;
+  metadata?: Record<string, unknown>;
   typeParameters?: TypeParameter[];
   members?: Member[];
   parameters?: Parameter[];
