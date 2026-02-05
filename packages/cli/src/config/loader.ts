@@ -81,6 +81,7 @@ export function resolveConfigPaths(config: AutodocsConfig, configDir: string): A
       dir: path.resolve(configDir, config.output.dir),
     },
     tsconfig: config.tsconfig ? path.resolve(configDir, config.tsconfig) : undefined,
+    cacheDir: config.cacheDir ? path.resolve(configDir, config.cacheDir) : config.cacheDir,
     theme: config.theme
       ? {
           ...config.theme,

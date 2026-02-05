@@ -4,6 +4,7 @@ import { registerInit } from './commands/init';
 import { registerBuild } from './commands/build';
 import { registerCheck } from './commands/check';
 import { registerServe } from './commands/serve';
+import { registerWatch } from './commands/watch';
 
 const program = new Command();
 
@@ -13,6 +14,7 @@ registerInit(program);
 registerBuild(program);
 registerCheck(program);
 registerServe(program);
+registerWatch(program);
 
 program.parse(process.argv);
 

@@ -44,3 +44,7 @@ Thumbs.db
 # Others
 .agent
 .files
+
+# Autodocs
+docs-dist
+.autodocs-cache

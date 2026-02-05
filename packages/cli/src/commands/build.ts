@@ -8,12 +8,15 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import fsPromises from 'fs/promises';
 import { loadConfig, resolveConfigPaths } from '../config';
+import { computeConfigHash } from '../utils/configHash';
 import {
   createProgram,
   extractDocs,
   DocEntry,
   PluginManager,
   Plugin,
+  FileCache,
+  incrementalBuild,
 } from '@opensyntaxhq/autodocs-core';
 
 const execAsync = promisify(exec);
@@ -166,6 +169,63 @@ async function copyDirectory(src: string, dest: string): Promise<void> {
   }
 }
 
+async function buildUiConfigPayload(uiConfig: {
+  theme?: import('../config').ThemeConfig;
+  features?: import('../config').FeaturesConfig;
+  sidebar?: import('../config').SidebarItem[];
+}): Promise<{
+  version: string;
+  generatedAt: string;
+  theme?: import('../config').ThemeConfig;
+  features?: import('../config').FeaturesConfig;
+  sidebar?: import('../config').SidebarItem[];
+}> {
+  const theme = uiConfig.theme
+    ? {
+        ...uiConfig.theme,
+        logo: await assetToDataUrl(uiConfig.theme.logo),
+        favicon: await assetToDataUrl(uiConfig.theme.favicon),
+      }
+    : undefined;
+
+  return {
+    version: '0.1.0',
+    generatedAt: new Date().toISOString(),
+    theme,
+    features: uiConfig.features,
+    sidebar: uiConfig.sidebar,
+  };
+}
+
+export async function writeStaticDocs(
+  docs: DocEntry[],
+  outputDir: string,
+  options: {
+    rootDir?: string;
+    configDir?: string;
+    uiConfig: {
+      theme?: import('../config').ThemeConfig;
+      features?: import('../config').FeaturesConfig;
+      sidebar?: import('../config').SidebarItem[];
+    };
+  }
+): Promise<void> {
+  await fsPromises.mkdir(outputDir, { recursive: true });
+
+  await copySidebarFiles(options.uiConfig.sidebar, outputDir, options.configDir);
+
+  const { generateJson } = await import('@opensyntaxhq/autodocs-core');
+  await generateJson(docs, outputDir, { pretty: true, rootDir: options.rootDir });
+
+  const configData = await buildUiConfigPayload(options.uiConfig);
+
+  await fsPromises.writeFile(
+    path.join(outputDir, 'config.json'),
+    JSON.stringify(configData, null, 2),
+    'utf-8'
+  );
+}
+
 export async function buildReactUI(
   docs: DocEntry[],
   outputDir: string,
@@ -239,45 +299,13 @@ export async function buildReactUI(
 
   spinner.succeed(chalk.green('UI assets copied'));
 
-  // Step 3b: Copy markdown content referenced by sidebar
-  spinner.start('Copying sidebar content...');
-  await copySidebarFiles(options.uiConfig.sidebar, outputDir, options.configDir);
-  spinner.succeed(chalk.green('Sidebar content copied'));
-
-  // Step 4: Generate docs.json
   spinner.start('Generating docs data...');
-
-  const { generateJson } = await import('@opensyntaxhq/autodocs-core');
-  await generateJson(docs, outputDir, { pretty: true, rootDir: options.rootDir });
-
+  await writeStaticDocs(docs, outputDir, {
+    rootDir: options.rootDir,
+    configDir: options.configDir,
+    uiConfig: options.uiConfig,
+  });
   spinner.succeed(chalk.green('Documentation data generated'));
-
-  // Step 5: Generate config.json
-  spinner.start('Generating UI config...');
-
-  const theme = options.uiConfig.theme
-    ? {
-        ...options.uiConfig.theme,
-        logo: await assetToDataUrl(options.uiConfig.theme.logo),
-        favicon: await assetToDataUrl(options.uiConfig.theme.favicon),
-      }
-    : undefined;
-
-  const configData = {
-    version: '0.1.0',
-    generatedAt: new Date().toISOString(),
-    theme,
-    features: options.uiConfig.features,
-    sidebar: options.uiConfig.sidebar,
-  };
-
-  await fsPromises.writeFile(
-    path.join(outputDir, 'config.json'),
-    JSON.stringify(configData, null, 2),
-    'utf-8'
-  );
-
-  spinner.succeed(chalk.green('UI config generated'));
 }
 
 export function registerBuild(program: Command): void {
@@ -353,37 +381,74 @@ export function registerBuild(program: Command): void {
         }
 
         spinner.succeed(chalk.green(`Found ${files.length.toString()} files`));
+        const configHash = computeConfigHash(config);
+
+        let docs: DocEntry[] = [];
+        let rootDir = process.cwd();
+        let diagnostics: Array<import('typescript').Diagnostic> = [];
+
         spinner.start('Parsing TypeScript...');
 
-        const parseResult = createProgram(files, {
-          configFile: config.tsconfig,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-          compilerOptions: config.compilerOptions as any,
-          skipLibCheck: true,
-        });
+        if (config.cache !== false) {
+          const cache = new FileCache({
+            cacheDir: config.cacheDir || path.join(configDir, '.autodocs-cache'),
+            enabled: true,
+          });
 
-        // Plugin hook: afterParse
-        await manager.runHook('afterParse', parseResult.program);
+          const result = await incrementalBuild({
+            files,
+            cache,
+            tsconfig: config.tsconfig,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+            compilerOptions: config.compilerOptions as any,
+            configHash,
+            onProgram: async (program, parsedSourceFiles) => {
+              await manager.runHook('afterParse', program);
+              await manager.runHook('beforeExtract', parsedSourceFiles);
+            },
+          });
+
+          docs = result.docs;
+          rootDir = result.rootDir;
+          diagnostics = result.diagnostics;
+
+          spinner.succeed(
+            chalk.green(
+              `Processed ${result.changedFiles.length.toString()} changed files (${result.fromCache.toString()} from cache)`
+            )
+          );
+        } else {
+          const parseResult = createProgram(files, {
+            configFile: config.tsconfig,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+            compilerOptions: config.compilerOptions as any,
+            skipLibCheck: true,
+          });
+
+          // Plugin hook: afterParse
+          await manager.runHook('afterParse', parseResult.program);
+
+          // Plugin hook: beforeExtract
+          await manager.runHook('beforeExtract', parseResult.sourceFiles);
+
+          docs = extractDocs(parseResult.program, { rootDir: parseResult.rootDir });
+          rootDir = parseResult.rootDir;
+          diagnostics = parseResult.diagnostics;
+
+          spinner.succeed(chalk.green('TypeScript parsed'));
+        }
 
         // Show diagnostics in verbose mode
-        if (config.verbose && parseResult.diagnostics.length > 0) {
+        if (config.verbose && diagnostics.length > 0) {
           spinner.info('TypeScript diagnostics:');
-          parseResult.diagnostics.forEach((d) => {
+          diagnostics.forEach((d) => {
             const message =
               typeof d.messageText === 'string' ? d.messageText : d.messageText.messageText;
             console.log(chalk.gray(`  ${message}`));
           });
-          spinner.start('Parsing TypeScript...');
         }
 
-        spinner.succeed(chalk.green('TypeScript parsed'));
         spinner.start('Extracting documentation...');
-
-        // Plugin hook: beforeExtract
-        await manager.runHook('beforeExtract', parseResult.sourceFiles);
-
-        // Extract docs
-        let docs = extractDocs(parseResult.program, { rootDir: parseResult.rootDir });
 
         // Plugin hook: afterExtract
         docs = await manager.runHook('afterExtract', docs);
@@ -409,7 +474,7 @@ export function registerBuild(program: Command): void {
             const { generateJson } = await import('@opensyntaxhq/autodocs-core');
             await generateJson(docs, config.output.dir, {
               pretty: true,
-              rootDir: parseResult.rootDir,
+              rootDir,
             });
             break;
           }
@@ -422,7 +487,7 @@ export function registerBuild(program: Command): void {
           default: {
             // Build and integrate React UI
             await buildReactUI(docs, config.output.dir, spinner, {
-              rootDir: parseResult.rootDir,
+              rootDir,
               configDir,
               uiConfig: {
                 theme: config.theme,
