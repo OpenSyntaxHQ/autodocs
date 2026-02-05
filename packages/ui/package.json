@@ -1,6 +1,6 @@
 {
   "name": "@opensyntaxhq/autodocs-ui",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -39,9 +39,26 @@
     "eslint": "^9.19.0",
     "jsdom": "^26.1.0",
     "postcss": "^8.5.3",
+    "rollup-plugin-visualizer": "^5.12.0",
+    "terser": "^5.39.0",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.7.3",
     "vite": "^7.3.1",
     "vitest": "^3.2.4"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OpenSyntaxHQ/autodocs.git",
+    "directory": "packages/ui"
+  },
+  "bugs": {
+    "url": "https://github.com/OpenSyntaxHQ/autodocs/issues"
+  },
+  "homepage": "https://github.com/OpenSyntaxHQ/autodocs",
+  "keywords": [
+    "documentation",
+    "typescript",
+    "react",
+    "ui"
+  ]
 }
