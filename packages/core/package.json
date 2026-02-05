@@ -1,8 +1,27 @@
 {
   "name": "@opensyntaxhq/autodocs-core",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "license": "Apache-2.0",
   "description": "Core parsing and extraction engine for Autodocs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OpenSyntaxHQ/autodocs.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/OpenSyntaxHQ/autodocs/issues"
+  },
+  "homepage": "https://github.com/OpenSyntaxHQ/autodocs",
+  "keywords": [
+    "documentation",
+    "typescript",
+    "api-docs",
+    "jsdoc",
+    "developer-tools"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",

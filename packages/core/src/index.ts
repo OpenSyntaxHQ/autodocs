@@ -25,4 +25,7 @@ export { FileCache } from './cache/FileCache';
 export { incrementalBuild } from './cache/incremental';
 export type { CacheEntry, CacheMetadata, CacheOptions } from './cache/types';
 
+export { generateStaticSite } from './deploy/static';
+export type { StaticSiteOptions } from './deploy/static';
+
 export { VERSION } from './version';

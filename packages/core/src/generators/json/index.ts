@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { DocEntry } from '../../extractor';
+import { VERSION } from '../../version';
 
 export interface JsonGeneratorOptions {
   pretty?: boolean;
@@ -34,7 +35,7 @@ async function generateSingleJson(
   const stats = computeStats(docs);
   const output = {
     meta: {
-      version: '0.1.0',
+      version: VERSION,
       generatedAt: new Date().toISOString(),
       rootDir: options.rootDir,
       stats,
