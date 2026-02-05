@@ -5,10 +5,11 @@ import { registerBuild } from './commands/build';
 import { registerCheck } from './commands/check';
 import { registerServe } from './commands/serve';
 import { registerWatch } from './commands/watch';
+import { VERSION } from '@opensyntaxhq/autodocs-core';
 
 const program = new Command();
 
-program.name('autodocs').description('Engineer-first documentation generator').version('0.1.0');
+program.name('autodocs').description('Engineer-first documentation generator').version(VERSION);
 
 registerInit(program);
 registerBuild(program);

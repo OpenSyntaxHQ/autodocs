@@ -25,6 +25,7 @@ export interface OutputConfig {
   format: 'static' | 'json' | 'markdown';
   clean?: boolean;
   publicPath?: string;
+  siteUrl?: string;
 }
 
 export interface ThemeConfig {

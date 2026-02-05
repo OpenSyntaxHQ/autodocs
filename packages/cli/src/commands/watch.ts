@@ -27,6 +27,10 @@ export async function runBuild({ config, configDir, mode }: WatchBuildOptions): 
   let pluginManager: PluginManager | null = null;
 
   try {
+    const siteUrl = config.output.siteUrl ?? process.env.SITE_URL;
+    const siteName =
+      config.theme?.name && config.theme.name !== 'default' ? config.theme.name : 'Autodocs';
+
     pluginManager = new PluginManager(config);
     const manager = pluginManager;
     await loadPlugins(manager, config.plugins, configDir);
@@ -122,6 +126,8 @@ export async function runBuild({ config, configDir, mode }: WatchBuildOptions): 
               features: config.features,
               sidebar: config.sidebar,
             },
+            siteUrl,
+            siteName,
           });
         } else {
           await writeStaticDocs(docs, config.output.dir, {
@@ -132,6 +138,8 @@ export async function runBuild({ config, configDir, mode }: WatchBuildOptions): 
               features: config.features,
               sidebar: config.sidebar,
             },
+            siteUrl,
+            siteName,
           });
         }
         break;

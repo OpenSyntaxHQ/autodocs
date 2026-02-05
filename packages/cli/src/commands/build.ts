@@ -17,6 +17,8 @@ import {
   Plugin,
   FileCache,
   incrementalBuild,
+  generateStaticSite,
+  VERSION,
 } from '@opensyntaxhq/autodocs-core';
 
 const execAsync = promisify(exec);
@@ -189,7 +191,7 @@ async function buildUiConfigPayload(uiConfig: {
     : undefined;
 
   return {
-    version: '0.1.0',
+    version: VERSION,
     generatedAt: new Date().toISOString(),
     theme,
     features: uiConfig.features,
@@ -208,6 +210,8 @@ export async function writeStaticDocs(
       features?: import('../config').FeaturesConfig;
       sidebar?: import('../config').SidebarItem[];
     };
+    siteUrl?: string;
+    siteName?: string;
   }
 ): Promise<void> {
   await fsPromises.mkdir(outputDir, { recursive: true });
@@ -224,6 +228,12 @@ export async function writeStaticDocs(
     JSON.stringify(configData, null, 2),
     'utf-8'
   );
+
+  await generateStaticSite({
+    outputDir,
+    siteUrl: options.siteUrl,
+    siteName: options.siteName ?? 'Autodocs',
+  });
 }
 
 export async function buildReactUI(
@@ -239,6 +249,8 @@ export async function buildReactUI(
       sidebar?: import('../config').SidebarItem[];
     };
     uiDir?: string;
+    siteUrl?: string;
+    siteName?: string;
   }
 ): Promise<void> {
   // Find the UI package using require.resolve - works in monorepo
@@ -304,6 +316,8 @@ export async function buildReactUI(
     rootDir: options.rootDir,
     configDir: options.configDir,
     uiConfig: options.uiConfig,
+    siteUrl: options.siteUrl,
+    siteName: options.siteName,
   });
   spinner.succeed(chalk.green('Documentation data generated'));
 }
@@ -353,6 +367,10 @@ export function registerBuild(program: Command): void {
         if (opts.cache === false) {
           config.cache = false;
         }
+
+        const siteUrl = config.output.siteUrl ?? process.env.SITE_URL;
+        const siteName =
+          config.theme?.name && config.theme.name !== 'default' ? config.theme.name : 'Autodocs';
 
         // Initialize plugin manager
         spinner.text = 'Loading plugins...';
@@ -494,6 +512,8 @@ export function registerBuild(program: Command): void {
                 features: config.features,
                 sidebar: config.sidebar,
               },
+              siteUrl,
+              siteName,
             });
             break;
           }

@@ -1,6 +1,6 @@
 {
   "name": "@opensyntaxhq/autodocs",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "CLI for Autodocs documentation generator",
   "bin": {
     "autodocs": "dist/index.js"
@@ -27,7 +27,7 @@
     }
   },
   "dependencies": {
-    "@opensyntaxhq/autodocs-core": "*",
+    "@opensyntaxhq/autodocs-core": "^1.0.0",
     "chalk": "^4.1.2",
     "chokidar": "^3.6.0",
     "commander": "^12.0.0",
@@ -54,7 +54,25 @@
   "directories": {
     "test": "tests"
   },
-  "keywords": [],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OpenSyntaxHQ/autodocs.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/OpenSyntaxHQ/autodocs/issues"
+  },
+  "homepage": "https://github.com/OpenSyntaxHQ/autodocs",
+  "keywords": [
+    "documentation",
+    "typescript",
+    "cli",
+    "api-docs",
+    "jsdoc"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "author": "",
   "license": "Apache-2.0",
   "type": "commonjs"
