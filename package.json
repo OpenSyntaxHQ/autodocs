@@ -1,6 +1,6 @@
 {
   "name": "autodocs-monorepo",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "license": "Apache-2.0",
   "packageManager": "npm@11.7.0",
@@ -16,6 +16,8 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json}\"",
     "test": "turbo run test",
     "type-check": "turbo run type-check",
+    "docs:build": "npm run build && node packages/cli/dist/index.js build",
+    "version": "node scripts/version.js",
     "clean": "turbo run clean && rm -rf node_modules .turbo",
     "prepare": "husky"
   },
