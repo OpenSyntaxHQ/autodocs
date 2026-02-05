@@ -1,4 +1,5 @@
 import path from 'path';
+import { pathToFileURL } from 'url';
 import chalk from 'chalk';
 import ora from 'ora';
 import { Command } from 'commander';
@@ -7,7 +8,13 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import fsPromises from 'fs/promises';
 import { loadConfig, resolveConfigPaths } from '../config';
-import { createProgram, extractDocs, DocEntry } from '@opensyntaxhq/autodocs-core';
+import {
+  createProgram,
+  extractDocs,
+  DocEntry,
+  PluginManager,
+  Plugin,
+} from '@opensyntaxhq/autodocs-core';
 
 const execAsync = promisify(exec);
 
@@ -48,6 +55,61 @@ async function assetToDataUrl(value?: string): Promise<string | undefined> {
     return `data:${mime};base64,${buffer.toString('base64')}`;
   } catch {
     return undefined;
+  }
+}
+
+function isPathLike(value: string): boolean {
+  return value.startsWith('.') || value.startsWith('/') || value.startsWith('file:');
+}
+
+async function loadPluginModule(name: string, configDir: string): Promise<unknown> {
+  if (name.startsWith('file:')) {
+    return import(name);
+  }
+
+  if (isPathLike(name)) {
+    const resolvedPath = path.resolve(configDir, name);
+    return import(pathToFileURL(resolvedPath).href);
+  }
+
+  return import(name);
+}
+
+type PluginFactory = (options?: Record<string, unknown>) => Plugin;
+
+function resolvePluginExport(exported: unknown, options?: Record<string, unknown>): Plugin {
+  if (typeof exported === 'function') {
+    return (exported as PluginFactory)(options);
+  }
+  return exported as Plugin;
+}
+
+export async function loadPlugins(
+  pluginManager: PluginManager,
+  plugins: Array<string | import('../config').PluginConfig> | undefined,
+  configDir: string
+): Promise<void> {
+  if (!plugins || plugins.length === 0) {
+    return;
+  }
+
+  for (const plugin of plugins) {
+    if (typeof plugin === 'string') {
+      if (isPathLike(plugin)) {
+        const module = await loadPluginModule(plugin, configDir);
+        const exported = (module as { default?: unknown }).default ?? module;
+        const instance = resolvePluginExport(exported);
+        await pluginManager.loadPlugin(instance);
+      } else {
+        await pluginManager.loadPlugin(plugin);
+      }
+      continue;
+    }
+
+    const module = await loadPluginModule(plugin.name, configDir);
+    const exported = (module as { default?: unknown }).default ?? module;
+    const instance = resolvePluginExport(exported, plugin.options ?? {});
+    await pluginManager.loadPlugin(instance);
   }
 }
 
@@ -230,6 +292,7 @@ export function registerBuild(program: Command): void {
     .option('--no-cache', 'Disable caching')
     .action(async (options: unknown) => {
       const spinner = ora('Loading configuration...').start();
+      let pluginManager: PluginManager | null = null;
 
       try {
         const opts = options as BuildOptions;
@@ -263,13 +326,22 @@ export function registerBuild(program: Command): void {
           config.cache = false;
         }
 
+        // Initialize plugin manager
+        spinner.text = 'Loading plugins...';
+        pluginManager = new PluginManager(config);
+        const manager = pluginManager;
+        await loadPlugins(manager, config.plugins, configDir);
+
         spinner.text = 'Finding source files...';
 
         // Find files
-        const files = await glob(config.include, {
+        let files = await glob(config.include, {
           ignore: config.exclude || [],
           absolute: true,
         });
+
+        // Plugin hook: beforeParse
+        files = await manager.runHook('beforeParse', files);
 
         if (files.length === 0) {
           spinner.fail('No files found matching include patterns');
@@ -290,6 +362,9 @@ export function registerBuild(program: Command): void {
           skipLibCheck: true,
         });
 
+        // Plugin hook: afterParse
+        await manager.runHook('afterParse', parseResult.program);
+
         // Show diagnostics in verbose mode
         if (config.verbose && parseResult.diagnostics.length > 0) {
           spinner.info('TypeScript diagnostics:');
@@ -304,8 +379,14 @@ export function registerBuild(program: Command): void {
         spinner.succeed(chalk.green('TypeScript parsed'));
         spinner.start('Extracting documentation...');
 
+        // Plugin hook: beforeExtract
+        await manager.runHook('beforeExtract', parseResult.sourceFiles);
+
         // Extract docs
-        const docs = extractDocs(parseResult.program, { rootDir: parseResult.rootDir });
+        let docs = extractDocs(parseResult.program, { rootDir: parseResult.rootDir });
+
+        // Plugin hook: afterExtract
+        docs = await manager.runHook('afterExtract', docs);
 
         if (docs.length === 0) {
           spinner.warn('No exported symbols found to document');
@@ -316,6 +397,10 @@ export function registerBuild(program: Command): void {
         }
 
         spinner.succeed(chalk.green(`Extracted ${docs.length.toString()} entries`));
+
+        // Plugin hook: beforeGenerate
+        docs = await manager.runHook('beforeGenerate', docs);
+
         spinner.start('Generating documentation...');
 
         // Generate documentation
@@ -349,6 +434,12 @@ export function registerBuild(program: Command): void {
           }
         }
 
+        // Plugin hook: afterGenerate
+        await manager.runHook('afterGenerate', config.output.dir);
+
+        // Plugin cleanup
+        await manager.cleanup();
+
         spinner.succeed(chalk.green('Documentation generated!'));
 
         // Statistics
@@ -369,6 +460,9 @@ export function registerBuild(program: Command): void {
       } catch (error) {
         spinner.fail(chalk.red('Build failed'));
         console.error(error);
+        if (pluginManager) {
+          await pluginManager.cleanup();
+        }
         process.exit(1);
       }
     });

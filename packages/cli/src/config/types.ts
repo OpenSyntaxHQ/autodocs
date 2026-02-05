@@ -12,7 +12,7 @@ export interface AutodocsConfig {
   sidebar?: SidebarItem[];
 
   features?: FeaturesConfig;
-  plugins?: PluginConfig[];
+  plugins?: Array<string | PluginConfig>;
 
   ignoreErrors?: boolean;
   verbose?: boolean;
