@@ -2,11 +2,19 @@ import { defineConfig } from '@opensyntaxhq/autodocs';
 
 export default defineConfig({
   include: ['packages/**/*.ts', 'packages/**/*.tsx'],
-  exclude: ['**/*.test.ts', '**/*.spec.ts'],
+  exclude: [
+    '**/*.test.ts',
+    '**/*.spec.ts',
+    '**/node_modules/**',
+    '**/dist/**',
+    '**/docs-dist/**',
+    '**/.turbo/**',
+  ],
   output: {
     dir: './docs-dist',
     format: 'static',
     clean: true,
+    siteUrl: process.env.SITE_URL,
   },
   theme: {
     name: 'default',

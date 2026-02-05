@@ -3,6 +3,8 @@
 > Engineer-first documentation generator that turns your TypeScript code into beautiful, interactive docs.
 
 [![CI](https://github.com/OpenSyntaxHQ/autodocs/workflows/CI/badge.svg)](https://github.com/OpenSyntaxHQ/autodocs/actions)
+[![codecov](https://codecov.io/gh/OpenSyntaxHQ/autodocs/branch/main/graph/badge.svg)](https://codecov.io/gh/OpenSyntaxHQ/autodocs)
+[![npm version](https://badge.fury.io/js/@opensyntaxhq%2Fautodocs.svg)](https://www.npmjs.com/package/@opensyntaxhq/autodocs)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 ## Features
@@ -60,6 +62,35 @@ npm run test
 
 # Lint code
 npm run lint
+```
+
+## CI/CD
+
+This project ships with a full CI/CD pipeline using GitHub Actions and Netlify:
+
+- Lint, type-check, format, tests with coverage
+- Staging deploys from `develop`
+- Production deploys from `main`
+- PR preview deployments
+- CodeQL, dependency review, Trivy, npm audit
+
+If you don’t have a custom domain yet, Netlify will use a default `*.netlify.app` URL.  
+When you’re ready, set `SITE_URL` (repo secret or env var) to generate `sitemap.xml` and `robots.txt`.
+
+You can also set it in config:
+
+```ts
+export default defineConfig({
+  output: {
+    siteUrl: 'https://your-domain.example',
+  },
+});
+```
+
+### Build the docs site
+
+```bash
+npm run docs:build
 ```
 
 ## Project Structure
