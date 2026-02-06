@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
-import os from 'os';
 import path from 'path';
 import type { DocEntry } from '@opensyntaxhq/autodocs-core';
+import { createTempDir } from './helpers/temp';
 
 jest.mock('child_process', () => ({
   exec: jest.fn(
@@ -27,7 +27,7 @@ const createSpinner = () => ({
 
 describe('buildReactUI', () => {
   it('writes docs.json and config.json into the output directory', async () => {
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'autodocs-cli-'));
+    const tempDir = await createTempDir('autodocs-cli-');
     const uiDir = path.join(tempDir, 'ui');
     const distDir = path.join(uiDir, 'dist');
     await fs.mkdir(distDir, { recursive: true });

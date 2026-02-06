@@ -1,12 +1,12 @@
 import fs from 'fs/promises';
-import os from 'os';
 import path from 'path';
 import { PluginManager } from '@opensyntaxhq/autodocs-core';
 import { loadPlugins } from '../src/commands/build';
+import { createTempDir } from './helpers/temp';
 
 describe('CLI plugin loading', () => {
   it('loads plugins from local paths with options', async () => {
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'autodocs-cli-'));
+    const tempDir = await createTempDir('autodocs-cli-');
     const pluginPath = path.join(tempDir, 'plugin.cjs');
 
     await fs.writeFile(
@@ -40,7 +40,7 @@ describe('CLI plugin loading', () => {
   });
 
   it('loads plugins from local paths without options', async () => {
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'autodocs-cli-'));
+    const tempDir = await createTempDir('autodocs-cli-');
     const pluginPath = path.join(tempDir, 'plugin.cjs');
 
     await fs.writeFile(
