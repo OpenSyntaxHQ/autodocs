@@ -1,12 +1,12 @@
 import fs from 'fs/promises';
-import os from 'os';
 import path from 'path';
 import { generateJson } from '../src/generators/json';
 import { DocEntry } from '../src/extractor';
+import { createTempDir } from './helpers/fixtures';
 
 describe('JSON generator', () => {
   it('writes docs.json with meta and normalized entries', async () => {
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'autodocs-json-'));
+    const tempDir = await createTempDir('autodocs-json-');
     const rootDir = path.join(tempDir, 'project');
     const filePath = path.join(rootDir, 'src', 'example.ts');
 

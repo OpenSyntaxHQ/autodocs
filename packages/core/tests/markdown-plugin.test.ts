@@ -1,12 +1,12 @@
 import fs from 'fs/promises';
-import os from 'os';
 import path from 'path';
 import markdownPlugin from '../../plugins/markdown/src/index';
 import type { PluginContext } from '../src/plugins';
+import { createTempDir } from './helpers/fixtures';
 
 describe('Markdown plugin', () => {
   it('parses front matter and creates guide entries', async () => {
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'autodocs-md-'));
+    const tempDir = await createTempDir('autodocs-md-');
     const filePath = path.join(tempDir, 'guide.md');
 
     await fs.writeFile(

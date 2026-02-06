@@ -1,12 +1,12 @@
 import fs from 'fs/promises';
-import os from 'os';
 import path from 'path';
 import examplesPlugin from '../../plugins/examples/src/index';
 import type { DocEntry } from '../src/extractor';
+import { createTempDir } from './helpers/fixtures';
 
 describe('Examples plugin', () => {
   it('validates examples and emits example files', async () => {
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'autodocs-ex-'));
+    const tempDir = await createTempDir('autodocs-ex-');
     const outputDir = path.join(tempDir, 'docs');
 
     const docs: DocEntry[] = [

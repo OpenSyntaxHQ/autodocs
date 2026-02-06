@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
-import os from 'os';
 import path from 'path';
 import { FileCache } from '../src/cache/FileCache';
+import { createTempDir } from './helpers/fixtures';
 import { VERSION } from '../src/version';
 
 const metadata = {
@@ -12,7 +12,7 @@ const metadata = {
 
 describe('FileCache', () => {
   it('stores and retrieves docs entries', async () => {
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'autodocs-cache-'));
+    const tempDir = await createTempDir('autodocs-cache-');
     const cacheDir = path.join(tempDir, 'cache');
     const filePath = path.join(tempDir, 'src', 'example.ts');
     await fs.mkdir(path.dirname(filePath), { recursive: true });
@@ -32,7 +32,7 @@ describe('FileCache', () => {
   });
 
   it('invalidates dependent entries', async () => {
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'autodocs-cache-'));
+    const tempDir = await createTempDir('autodocs-cache-');
     const cacheDir = path.join(tempDir, 'cache');
     const fileA = path.join(tempDir, 'src', 'a.ts');
     const fileB = path.join(tempDir, 'src', 'b.ts');

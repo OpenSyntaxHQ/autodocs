@@ -1,8 +1,8 @@
 import fs from 'fs/promises';
-import os from 'os';
 import path from 'path';
 import { FileCache } from '../src/cache/FileCache';
 import { incrementalBuild } from '../src/cache/incremental';
+import { createTempDir } from './helpers/fixtures';
 
 async function writeFile(filePath: string, content: string): Promise<void> {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
@@ -11,7 +11,7 @@ async function writeFile(filePath: string, content: string): Promise<void> {
 
 describe('incrementalBuild', () => {
   it('reuses cache for unchanged files', async () => {
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'autodocs-inc-'));
+    const tempDir = await createTempDir('autodocs-inc-');
     const cache = new FileCache({ cacheDir: path.join(tempDir, 'cache') });
     const fileA = path.join(tempDir, 'src', 'a.ts');
 
@@ -38,7 +38,7 @@ describe('incrementalBuild', () => {
   });
 
   it('invalidates dependent files when a dependency changes', async () => {
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'autodocs-inc-'));
+    const tempDir = await createTempDir('autodocs-inc-');
     const cache = new FileCache({ cacheDir: path.join(tempDir, 'cache') });
     const fileA = path.join(tempDir, 'src', 'a.ts');
     const fileB = path.join(tempDir, 'src', 'b.ts');
@@ -65,7 +65,7 @@ describe('incrementalBuild', () => {
   });
 
   it('invalidates cache when config hash changes', async () => {
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'autodocs-inc-'));
+    const tempDir = await createTempDir('autodocs-inc-');
     const cache = new FileCache({ cacheDir: path.join(tempDir, 'cache') });
     const fileA = path.join(tempDir, 'src', 'a.ts');
 
