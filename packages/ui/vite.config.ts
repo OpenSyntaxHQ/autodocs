@@ -7,6 +7,8 @@ import { visualizer } from 'rollup-plugin-visualizer';
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const plugins = [react(), tailwindcss()];
+  const coverageStage = Number(process.env.COVERAGE_STAGE || '1');
+  const coverageThreshold = coverageStage >= 3 ? 80 : coverageStage >= 2 ? 70 : 40;
 
   if (mode === 'analyze') {
     plugins.push(
@@ -54,6 +56,19 @@ export default defineConfig(({ mode }) => {
       environment: 'jsdom',
       globals: true,
       setupFiles: ['./src/test/setup.ts'],
+      coverage: {
+        provider: 'v8',
+        reporter: ['text', 'json', 'html', 'lcov'],
+        all: true,
+        include: ['src/**/*.{ts,tsx}'],
+        exclude: ['src/**/*.test.{ts,tsx}', 'src/test/**', 'src/types/**', 'src/main.tsx'],
+        thresholds: {
+          branches: coverageThreshold,
+          functions: coverageThreshold,
+          lines: coverageThreshold,
+          statements: coverageThreshold,
+        },
+      },
     },
   };
 });
