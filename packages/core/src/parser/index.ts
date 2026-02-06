@@ -22,7 +22,7 @@ export function createProgram(entryFiles: string[], options: ParserOptions = {})
   // Find tsconfig.json if not provided
   const configFile = options.configFile || findConfigFile(entryFiles[0] || '');
 
-  let compilerOptions: ts.CompilerOptions = {
+  const baseDefaults: ts.CompilerOptions = {
     noEmit: true,
     target: ts.ScriptTarget.ESNext,
     module: ts.ModuleKind.ESNext,
@@ -30,6 +30,10 @@ export function createProgram(entryFiles: string[], options: ParserOptions = {})
     skipLibCheck: options.skipLibCheck ?? true,
     allowJs: false,
     declaration: true,
+  };
+
+  let compilerOptions: ts.CompilerOptions = {
+    ...baseDefaults,
     ...options.compilerOptions,
   };
 
@@ -44,10 +48,11 @@ export function createProgram(entryFiles: string[], options: ParserOptions = {})
         path.dirname(configPath)
       );
 
-      // Merge with provided options
+      // Merge defaults, config, then explicit overrides
       compilerOptions = {
+        ...baseDefaults,
         ...parsedConfig.options,
-        ...compilerOptions,
+        ...options.compilerOptions,
       };
     }
   }
