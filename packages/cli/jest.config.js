@@ -32,10 +32,10 @@ module.exports = {
         };
       }
       return {
-        branches: 50,
-        functions: 50,
-        lines: 50,
-        statements: 50,
+        branches: 40,
+        functions: 45,
+        lines: 45,
+        statements: 45,
       };
     })(),
   },

@@ -13,6 +13,7 @@ jobs:
   dependency-review:
     name: Dependency Review
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'pull_request_target' || github.event_name == 'merge_group' }}
     steps:
       - uses: actions/checkout@v6
       - name: Dependency Review
