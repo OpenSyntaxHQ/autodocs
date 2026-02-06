@@ -1,4 +1,5 @@
 import { cosmiconfig } from 'cosmiconfig';
+import fs from 'fs';
 import path from 'path';
 import jiti from 'jiti';
 import { AutodocsConfig } from './types';
@@ -23,15 +24,36 @@ export async function loadConfig(searchFrom?: string): Promise<AutodocsConfig | 
   });
 
   try {
-    const result = await explorer.search(searchFrom);
+    const resolvedPath = searchFrom ? path.resolve(searchFrom) : undefined;
+    const hasExplicitConfig =
+      resolvedPath && path.extname(resolvedPath) && fs.existsSync(resolvedPath);
+    const result = hasExplicitConfig
+      ? await explorer.load(resolvedPath)
+      : await explorer.search(searchFrom);
 
     if (!result || result.isEmpty) {
+      if (hasExplicitConfig && resolvedPath) {
+        const ext = path.extname(resolvedPath);
+        if (ext === '.json') {
+          const raw = await fs.promises.readFile(resolvedPath, 'utf-8');
+          return mergeConfig(DEFAULT_CONFIG, JSON.parse(raw) as Partial<AutodocsConfig>);
+        }
+        if (['.ts', '.js', '.mjs', '.cjs'].includes(ext)) {
+          const loaded = jitiLoader(resolvedPath) as unknown;
+          const config = (loaded as { default?: unknown }).default || loaded;
+          return mergeConfig(DEFAULT_CONFIG, config as Partial<AutodocsConfig>);
+        }
+      }
       return null;
     }
 
     // Handle "export default" from TS/ESM files
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
-    const config = result.config.default || result.config;
+    const rawConfig = result.config as unknown;
+    const hasDefaultExport =
+      typeof rawConfig === 'object' && rawConfig !== null && 'default' in rawConfig;
+    const config = hasDefaultExport
+      ? ((rawConfig as { default?: unknown }).default ?? rawConfig)
+      : rawConfig;
 
     return mergeConfig(DEFAULT_CONFIG, config as Partial<AutodocsConfig>);
   } catch (error) {
