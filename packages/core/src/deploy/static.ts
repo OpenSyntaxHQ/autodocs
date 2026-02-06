@@ -24,7 +24,11 @@ export async function generateStaticSite(options: StaticSiteOptions): Promise<vo
 }
 
 function normalizeUrl(value: string): string {
-  return value.replace(/\/+$/, '');
+  let normalized = value;
+  while (normalized.length > 0 && normalized.endsWith('/')) {
+    normalized = normalized.slice(0, -1);
+  }
+  return normalized;
 }
 
 async function generateSitemap(outputDir: string, baseUrl: string): Promise<void> {
