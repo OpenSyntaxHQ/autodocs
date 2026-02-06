@@ -1,35 +1,553 @@
 import path from 'path';
+import { pathToFileURL } from 'url';
 import chalk from 'chalk';
 import ora from 'ora';
 import { Command } from 'commander';
-import { createProgram, extractDocs, generateDocs } from '@opensyntaxhq/autodocs-core';
-import fs from 'fs';
+import { glob } from 'glob';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import fsPromises from 'fs/promises';
+import { loadConfig, resolveConfigPaths } from '../config';
+import { computeConfigHash } from '../utils/configHash';
+import {
+  createProgram,
+  extractDocs,
+  DocEntry,
+  PluginManager,
+  Plugin,
+  FileCache,
+  incrementalBuild,
+  generateStaticSite,
+  VERSION,
+} from '@opensyntaxhq/autodocs-core';
 
-export function registerBuild(program: Command) {
+const execAsync = promisify(exec);
+
+interface BuildOptions {
+  config?: string;
+  output?: string;
+  format?: 'static' | 'json' | 'markdown';
+  clean?: boolean;
+  verbose?: boolean;
+  cache?: boolean;
+}
+
+const ASSET_MIME_TYPES: Record<string, string> = {
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.ico': 'image/x-icon',
+};
+
+async function assetToDataUrl(value?: string): Promise<string | undefined> {
+  if (!value) {
+    return undefined;
+  }
+  if (/^(https?:|data:)/.test(value)) {
+    return value;
+  }
+  if (!path.isAbsolute(value)) {
+    return value;
+  }
+
+  try {
+    const buffer = await fsPromises.readFile(value);
+    const ext = path.extname(value).toLowerCase();
+    const mime = ASSET_MIME_TYPES[ext] || 'application/octet-stream';
+    return `data:${mime};base64,${buffer.toString('base64')}`;
+  } catch {
+    return undefined;
+  }
+}
+
+function isPathLike(value: string): boolean {
+  return value.startsWith('.') || value.startsWith('/') || value.startsWith('file:');
+}
+
+async function loadPluginModule(name: string, configDir: string): Promise<unknown> {
+  if (name.startsWith('file:')) {
+    return import(name);
+  }
+
+  if (isPathLike(name)) {
+    const resolvedPath = path.resolve(configDir, name);
+    return import(pathToFileURL(resolvedPath).href);
+  }
+
+  return import(name);
+}
+
+type PluginFactory = (options?: Record<string, unknown>) => Plugin;
+
+function resolvePluginExport(exported: unknown, options?: Record<string, unknown>): Plugin {
+  if (typeof exported === 'function') {
+    return (exported as PluginFactory)(options);
+  }
+  return exported as Plugin;
+}
+
+export async function loadPlugins(
+  pluginManager: PluginManager,
+  plugins: Array<string | import('../config').PluginConfig> | undefined,
+  configDir: string
+): Promise<void> {
+  if (!plugins || plugins.length === 0) {
+    return;
+  }
+
+  for (const plugin of plugins) {
+    if (typeof plugin === 'string') {
+      if (isPathLike(plugin)) {
+        const module = await loadPluginModule(plugin, configDir);
+        const exported = (module as { default?: unknown }).default ?? module;
+        const instance = resolvePluginExport(exported);
+        await pluginManager.loadPlugin(instance);
+      } else {
+        await pluginManager.loadPlugin(plugin);
+      }
+      continue;
+    }
+
+    const module = await loadPluginModule(plugin.name, configDir);
+    const exported = (module as { default?: unknown }).default ?? module;
+    const instance = resolvePluginExport(exported, plugin.options ?? {});
+    await pluginManager.loadPlugin(instance);
+  }
+}
+
+async function copySidebarFiles(
+  sidebar: Array<import('../config').SidebarItem> | undefined,
+  outputDir: string,
+  configDir?: string
+): Promise<void> {
+  if (!sidebar || !configDir) {
+    return;
+  }
+
+  for (const item of sidebar) {
+    if (item.items && item.items.length > 0) {
+      await copySidebarFiles(item.items, outputDir, configDir);
+    }
+
+    if (!item.path || !item.path.endsWith('.md')) {
+      continue;
+    }
+
+    if (/^(https?:|data:)/.test(item.path)) {
+      continue;
+    }
+
+    const relativePath = item.path.startsWith('/') ? item.path.slice(1) : item.path;
+    const sourcePath = path.resolve(configDir, relativePath);
+    try {
+      await fsPromises.access(sourcePath);
+    } catch {
+      continue;
+    }
+
+    const destinationPath = path.join(outputDir, relativePath);
+    await fsPromises.mkdir(path.dirname(destinationPath), { recursive: true });
+    await fsPromises.copyFile(sourcePath, destinationPath);
+  }
+}
+
+async function copyDirectory(src: string, dest: string): Promise<void> {
+  await fsPromises.mkdir(dest, { recursive: true });
+
+  const entries = await fsPromises.readdir(src, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+
+    if (entry.isDirectory()) {
+      await copyDirectory(srcPath, destPath);
+    } else {
+      await fsPromises.copyFile(srcPath, destPath);
+    }
+  }
+}
+
+async function buildUiConfigPayload(uiConfig: {
+  theme?: import('../config').ThemeConfig;
+  features?: import('../config').FeaturesConfig;
+  sidebar?: import('../config').SidebarItem[];
+}): Promise<{
+  version: string;
+  generatedAt: string;
+  theme?: import('../config').ThemeConfig;
+  features?: import('../config').FeaturesConfig;
+  sidebar?: import('../config').SidebarItem[];
+}> {
+  const theme = uiConfig.theme
+    ? {
+        ...uiConfig.theme,
+        logo: await assetToDataUrl(uiConfig.theme.logo),
+        favicon: await assetToDataUrl(uiConfig.theme.favicon),
+      }
+    : undefined;
+
+  return {
+    version: VERSION,
+    generatedAt: new Date().toISOString(),
+    theme,
+    features: uiConfig.features,
+    sidebar: uiConfig.sidebar,
+  };
+}
+
+export async function writeStaticDocs(
+  docs: DocEntry[],
+  outputDir: string,
+  options: {
+    rootDir?: string;
+    configDir?: string;
+    uiConfig: {
+      theme?: import('../config').ThemeConfig;
+      features?: import('../config').FeaturesConfig;
+      sidebar?: import('../config').SidebarItem[];
+    };
+    siteUrl?: string;
+    siteName?: string;
+  }
+): Promise<void> {
+  await fsPromises.mkdir(outputDir, { recursive: true });
+
+  await copySidebarFiles(options.uiConfig.sidebar, outputDir, options.configDir);
+
+  const { generateJson } = await import('@opensyntaxhq/autodocs-core');
+  await generateJson(docs, outputDir, { pretty: true, rootDir: options.rootDir });
+
+  const configData = await buildUiConfigPayload(options.uiConfig);
+
+  await fsPromises.writeFile(
+    path.join(outputDir, 'config.json'),
+    JSON.stringify(configData, null, 2),
+    'utf-8'
+  );
+
+  await generateStaticSite({
+    outputDir,
+    siteUrl: options.siteUrl,
+    siteName: options.siteName ?? 'Autodocs',
+  });
+}
+
+export async function buildReactUI(
+  docs: DocEntry[],
+  outputDir: string,
+  spinner: ReturnType<typeof ora>,
+  options: {
+    rootDir?: string;
+    configDir?: string;
+    uiConfig: {
+      theme?: import('../config').ThemeConfig;
+      features?: import('../config').FeaturesConfig;
+      sidebar?: import('../config').SidebarItem[];
+    };
+    uiDir?: string;
+    siteUrl?: string;
+    siteName?: string;
+  }
+): Promise<void> {
+  // Find the UI package using require.resolve - works in monorepo
+  let uiDir: string;
+  let uiDistDir: string;
+
+  if (options.uiDir) {
+    uiDir = options.uiDir;
+    uiDistDir = path.join(uiDir, 'dist');
+  } else {
+    try {
+      // Try to resolve the UI package from the monorepo
+      const uiPackageJson = require.resolve('@opensyntaxhq/autodocs-ui/package.json');
+      uiDir = path.dirname(uiPackageJson);
+      uiDistDir = path.join(uiDir, 'dist');
+    } catch {
+      // Fallback: resolve relative to CLI package in monorepo
+      uiDir = path.resolve(__dirname, '../../ui');
+      uiDistDir = path.join(uiDir, 'dist');
+    }
+  }
+
+  // Check if UI package exists
+  try {
+    await fsPromises.access(uiDir);
+  } catch {
+    // UI package not found, fall back to basic HTML
+    spinner.text = 'React UI not found, using basic HTML generator...';
+    const { generateHtml } = await import('@opensyntaxhq/autodocs-core');
+    await generateHtml(docs, outputDir);
+    return;
+  }
+
+  // Step 1: Build the React UI
+  spinner.text = 'Building React UI...';
+
+  try {
+    await execAsync('npm run build', { cwd: uiDir });
+  } catch {
+    spinner.fail(chalk.red('Failed to build React UI, falling back to basic HTML'));
+    const { generateHtml } = await import('@opensyntaxhq/autodocs-core');
+    await generateHtml(docs, outputDir);
+    return;
+  }
+
+  spinner.succeed(chalk.green('React UI built'));
+
+  // Step 2: Clean and create output directory
+  spinner.start('Preparing output directory...');
+
+  await fsPromises.rm(outputDir, { recursive: true, force: true });
+  await fsPromises.mkdir(outputDir, { recursive: true });
+
+  // Step 3: Copy React UI assets
+  spinner.text = 'Copying UI assets...';
+
+  await copyDirectory(uiDistDir, outputDir);
+
+  spinner.succeed(chalk.green('UI assets copied'));
+
+  spinner.start('Generating docs data...');
+  await writeStaticDocs(docs, outputDir, {
+    rootDir: options.rootDir,
+    configDir: options.configDir,
+    uiConfig: options.uiConfig,
+    siteUrl: options.siteUrl,
+    siteName: options.siteName,
+  });
+  spinner.succeed(chalk.green('Documentation data generated'));
+}
+
+export function registerBuild(program: Command): void {
   program
     .command('build')
     .description('Build documentation')
-    .action(async () => {
-      const spinner = ora('Building documentation...').start();
-      
+    .option('-c, --config <path>', 'Config file path')
+    .option('-o, --output <dir>', 'Output directory (overrides config)')
+    .option('--format <format>', 'Output format (overrides config)')
+    .option('--clean', 'Clean output directory first')
+    .option('-v, --verbose', 'Verbose logging')
+    .option('--no-cache', 'Disable caching')
+    .action(async (options: unknown) => {
+      const spinner = ora('Loading configuration...').start();
+      let pluginManager: PluginManager | null = null;
+
       try {
-        // In a real implementation, we would read autodocs.config.ts
-        const entryFile = path.join(process.cwd(), 'src/index.ts');
-        
-        if (!fs.existsSync(entryFile)) {
-             spinner.warn('No src/index.ts found. defaulting to empty build.');
-             return;
+        const opts = options as BuildOptions;
+        // Load config
+        let config = await loadConfig(opts.config);
+
+        if (!config) {
+          spinner.fail('No configuration found');
+          console.log(chalk.yellow('\nRun: autodocs init'));
+          process.exit(1);
         }
 
-        const tsProgram = createProgram([entryFile]);
-        const docs = extractDocs(tsProgram);
-        
-        generateDocs(docs, path.join(process.cwd(), 'docs-dist'));
-        
-        spinner.succeed(chalk.green('Documentation built successfully!'));
-      } catch (err) {
+        // Resolve paths
+        const configDir = opts.config ? path.dirname(opts.config) : process.cwd();
+        config = resolveConfigPaths(config, configDir);
+
+        // Apply CLI overrides
+        if (opts.output) {
+          config.output.dir = path.resolve(opts.output);
+        }
+        if (opts.format) {
+          config.output.format = opts.format;
+        }
+        if (opts.clean !== undefined) {
+          config.output.clean = opts.clean;
+        }
+        if (opts.verbose) {
+          config.verbose = true;
+        }
+        if (opts.cache === false) {
+          config.cache = false;
+        }
+
+        const siteUrl = config.output.siteUrl ?? process.env.SITE_URL;
+        const siteName =
+          config.theme?.name && config.theme.name !== 'default' ? config.theme.name : 'Autodocs';
+
+        // Initialize plugin manager
+        spinner.text = 'Loading plugins...';
+        pluginManager = new PluginManager(config);
+        const manager = pluginManager;
+        await loadPlugins(manager, config.plugins, configDir);
+
+        spinner.text = 'Finding source files...';
+
+        // Find files
+        let files = await glob(config.include, {
+          ignore: config.exclude || [],
+          absolute: true,
+        });
+
+        // Plugin hook: beforeParse
+        files = await manager.runHook('beforeParse', files);
+
+        if (files.length === 0) {
+          spinner.fail('No files found matching include patterns');
+          console.log(chalk.yellow('\nInclude patterns:'));
+          config.include.forEach((p) => {
+            console.log(chalk.yellow(`  ${p}`));
+          });
+          process.exit(1);
+        }
+
+        spinner.succeed(chalk.green(`Found ${files.length.toString()} files`));
+        const configHash = computeConfigHash(config);
+
+        let docs: DocEntry[] = [];
+        let rootDir = process.cwd();
+        let diagnostics: Array<import('typescript').Diagnostic> = [];
+
+        spinner.start('Parsing TypeScript...');
+
+        if (config.cache !== false) {
+          const cache = new FileCache({
+            cacheDir: config.cacheDir || path.join(configDir, '.autodocs-cache'),
+            enabled: true,
+          });
+
+          const result = await incrementalBuild({
+            files,
+            cache,
+            tsconfig: config.tsconfig,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+            compilerOptions: config.compilerOptions as any,
+            configHash,
+            onProgram: async (program, parsedSourceFiles) => {
+              await manager.runHook('afterParse', program);
+              await manager.runHook('beforeExtract', parsedSourceFiles);
+            },
+          });
+
+          docs = result.docs;
+          rootDir = result.rootDir;
+          diagnostics = result.diagnostics;
+
+          spinner.succeed(
+            chalk.green(
+              `Processed ${result.changedFiles.length.toString()} changed files (${result.fromCache.toString()} from cache)`
+            )
+          );
+        } else {
+          const parseResult = createProgram(files, {
+            configFile: config.tsconfig,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+            compilerOptions: config.compilerOptions as any,
+            skipLibCheck: true,
+          });
+
+          // Plugin hook: afterParse
+          await manager.runHook('afterParse', parseResult.program);
+
+          // Plugin hook: beforeExtract
+          await manager.runHook('beforeExtract', parseResult.sourceFiles);
+
+          docs = extractDocs(parseResult.program, { rootDir: parseResult.rootDir });
+          rootDir = parseResult.rootDir;
+          diagnostics = parseResult.diagnostics;
+
+          spinner.succeed(chalk.green('TypeScript parsed'));
+        }
+
+        // Show diagnostics in verbose mode
+        if (config.verbose && diagnostics.length > 0) {
+          spinner.info('TypeScript diagnostics:');
+          diagnostics.forEach((d) => {
+            const message =
+              typeof d.messageText === 'string' ? d.messageText : d.messageText.messageText;
+            console.log(chalk.gray(`  ${message}`));
+          });
+        }
+
+        spinner.start('Extracting documentation...');
+
+        // Plugin hook: afterExtract
+        docs = await manager.runHook('afterExtract', docs);
+
+        if (docs.length === 0) {
+          spinner.warn('No exported symbols found to document');
+          console.log(
+            chalk.yellow('\nMake sure your code exports interfaces, types, or functions')
+          );
+          process.exit(0);
+        }
+
+        spinner.succeed(chalk.green(`Extracted ${docs.length.toString()} entries`));
+
+        // Plugin hook: beforeGenerate
+        docs = await manager.runHook('beforeGenerate', docs);
+
+        spinner.start('Generating documentation...');
+
+        // Generate documentation
+        switch (config.output.format) {
+          case 'json': {
+            const { generateJson } = await import('@opensyntaxhq/autodocs-core');
+            await generateJson(docs, config.output.dir, {
+              pretty: true,
+              rootDir,
+            });
+            break;
+          }
+          case 'markdown': {
+            const { generateMarkdown } = await import('@opensyntaxhq/autodocs-core');
+            await generateMarkdown(docs, config.output.dir);
+            break;
+          }
+          case 'static':
+          default: {
+            // Build and integrate React UI
+            await buildReactUI(docs, config.output.dir, spinner, {
+              rootDir,
+              configDir,
+              uiConfig: {
+                theme: config.theme,
+                features: config.features,
+                sidebar: config.sidebar,
+              },
+              siteUrl,
+              siteName,
+            });
+            break;
+          }
+        }
+
+        // Plugin hook: afterGenerate
+        await manager.runHook('afterGenerate', config.output.dir);
+
+        // Plugin cleanup
+        await manager.cleanup();
+
+        spinner.succeed(chalk.green('Documentation generated!'));
+
+        // Statistics
+        console.log(chalk.cyan('\nStatistics:'));
+        console.log(`  Files processed: ${files.length.toString()}`);
+        console.log(`  Entries generated: ${docs.length.toString()}`);
+        console.log(`  Output: ${config.output.dir}`);
+
+        const kindCounts: Record<string, number> = {};
+        docs.forEach((d) => {
+          kindCounts[d.kind] = (kindCounts[d.kind] || 0) + 1;
+        });
+
+        console.log(chalk.cyan('\nBy kind:'));
+        Object.entries(kindCounts).forEach(([kind, count]) => {
+          console.log(`  ${kind}: ${count.toString()}`);
+        });
+      } catch (error) {
         spinner.fail(chalk.red('Build failed'));
-        console.error(err);
+        console.error(error);
+        if (pluginManager) {
+          await pluginManager.cleanup();
+        }
         process.exit(1);
       }
     });

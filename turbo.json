@@ -4,18 +4,30 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
-    },
-    "lint": {
-      "outputs": []
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
+      "cache": true
     },
     "dev": {
       "cache": false,
       "persistent": true
     },
+    "lint": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "cache": true
+    },
+    "type-check": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "cache": true
+    },
     "test": {
+      "dependsOn": ["build"],
       "outputs": ["coverage/**"],
-      "dependsOn": []
+      "cache": true
+    },
+    "clean": {
+      "cache": false
     }
   }
 }

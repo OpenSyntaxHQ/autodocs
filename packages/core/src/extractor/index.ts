@@ -1,47 +1,43 @@
 import ts from 'typescript';
+import path from 'path';
+import { DocEntry } from './types';
+import { getExportedSymbols } from '../parser/utils';
+import {
+  serializeInterface,
+  serializeTypeAlias,
+  serializeFunction,
+  serializeClass,
+  serializeEnum,
+  serializeVariable,
+} from './serializers';
 
-export interface DocEntry {
-  name?: string;
-  kind?: string;
-  fileName?: string;
-  documentation?: string;
-  type?: string;
-  constructors?: DocEntry[];
-  parameters?: DocEntry[];
-  returnType?: string;
-  members?: DocEntry[];
+export * from './types';
+
+interface ExtractOptions {
+  rootDir?: string;
 }
 
-export function extractDocs(program: ts.Program): DocEntry[] {
+export function extractDocs(program: ts.Program, options: ExtractOptions = {}): DocEntry[] {
   const output: DocEntry[] = [];
   const checker = program.getTypeChecker();
+  const seenSymbols = new Set<ts.Symbol>();
 
   for (const sourceFile of program.getSourceFiles()) {
-    if (!sourceFile.isDeclarationFile && !sourceFile.fileName.includes('node_modules')) {
-      ts.forEachChild(sourceFile, visit);
-    }
-  }
-
-  function visit(node: ts.Node) {
-    // Only consider exported nodes
-    if (!isNodeExported(node)) {
-      return;
+    if (shouldSkipFile(sourceFile)) {
+      continue;
     }
 
-    if (ts.isInterfaceDeclaration(node) && node.name) {
-      const symbol = checker.getSymbolAtLocation(node.name);
-      if (symbol) {
-        output.push(serializeInterface(symbol, checker));
+    const symbols = getExportedSymbols(sourceFile, checker);
+
+    for (const symbol of symbols) {
+      if (seenSymbols.has(symbol)) {
+        continue;
       }
-    } else if (ts.isFunctionDeclaration(node) && node.name) {
-      const symbol = checker.getSymbolAtLocation(node.name);
-      if (symbol) {
-        output.push(serializeFunction(symbol, checker));
-      }
-    } else if (ts.isClassDeclaration(node) && node.name) {
-      const symbol = checker.getSymbolAtLocation(node.name);
-      if (symbol) {
-        output.push(serializeClass(symbol, checker));
+      seenSymbols.add(symbol);
+
+      const entry = serializeSymbol(symbol, checker, options.rootDir);
+      if (entry) {
+        output.push(entry);
       }
     }
   }
@@ -49,75 +45,91 @@ export function extractDocs(program: ts.Program): DocEntry[] {
   return output;
 }
 
-function serializeInterface(symbol: ts.Symbol, checker: ts.TypeChecker): DocEntry {
-  const details: DocEntry = {
-    name: symbol.getName(),
-    kind: 'interface',
-    documentation: ts.displayPartsToString(symbol.getDocumentationComment(checker)),
-    type: checker.typeToString(checker.getTypeAtLocation(symbol.valueDeclaration!)),
-    members: []
-  };
-  
-  if (symbol.members) {
-    symbol.members.forEach((member) => {
-      // In a real implementation we would handle inherited members too
-      if (member.valueDeclaration || member.declarations) {
-         // member.valueDeclaration might be undefined for some merged symbols, check declarations
-         const declaration = member.valueDeclaration || member.declarations?.[0];
-         if (declaration) {
-            details.members!.push({
-               name: member.getName(),
-               kind: 'property',
-               documentation: ts.displayPartsToString(member.getDocumentationComment(checker)),
-               type: checker.typeToString(checker.getTypeOfSymbolAtLocation(member, declaration))
-            });
-         }
+export function extractDocsFromFiles(
+  program: ts.Program,
+  files: string[],
+  options: ExtractOptions = {}
+): DocEntry[] {
+  const output: DocEntry[] = [];
+  const checker = program.getTypeChecker();
+  const seenSymbols = new Set<ts.Symbol>();
+  const normalized = new Set(files.map((file) => path.normalize(path.resolve(file))));
+
+  for (const sourceFile of program.getSourceFiles()) {
+    if (shouldSkipFile(sourceFile)) {
+      continue;
+    }
+
+    if (!normalized.has(path.normalize(path.resolve(sourceFile.fileName)))) {
+      continue;
+    }
+
+    const symbols = getExportedSymbols(sourceFile, checker);
+
+    for (const symbol of symbols) {
+      if (seenSymbols.has(symbol)) {
+        continue;
       }
-    });
+      seenSymbols.add(symbol);
+
+      const entry = serializeSymbol(symbol, checker, options.rootDir);
+      if (entry) {
+        output.push(entry);
+      }
+    }
   }
 
-  return details;
+  return output;
 }
 
-function serializeFunction(symbol: ts.Symbol, checker: ts.TypeChecker): DocEntry {
-  const details: DocEntry = {
-    name: symbol.getName(),
-    kind: 'function',
-    documentation: ts.displayPartsToString(symbol.getDocumentationComment(checker)),
-    parameters: []
-  };
-
-  const signature = checker.getSignatureFromDeclaration(symbol.valueDeclaration as ts.SignatureDeclaration);
-  if (signature) {
-    details.returnType = checker.typeToString(signature.getReturnType());
-    signature.parameters.forEach(param => {
-       const declaration = param.valueDeclaration;
-       if (declaration) {
-         details.parameters!.push({
-            name: param.getName(),
-            documentation: ts.displayPartsToString(param.getDocumentationComment(checker)),
-            type: checker.typeToString(checker.getTypeOfSymbolAtLocation(param, declaration))
-         });
-       }
-    });
-  }
-
-  return details;
-}
-
-function serializeClass(symbol: ts.Symbol, checker: ts.TypeChecker): DocEntry {
-    const details: DocEntry = {
-        name: symbol.getName(),
-        kind: 'class',
-        documentation: ts.displayPartsToString(symbol.getDocumentationComment(checker))
-    };
-    return details;
-}
-
-
-function isNodeExported(node: ts.Node): boolean {
+function shouldSkipFile(sourceFile: ts.SourceFile): boolean {
   return (
-    (ts.getCombinedModifierFlags(node as ts.Declaration) & ts.ModifierFlags.Export) !== 0 ||
-    (!!node.parent && node.parent.kind === ts.SyntaxKind.SourceFile)
+    sourceFile.isDeclarationFile ||
+    sourceFile.fileName.includes('node_modules') ||
+    sourceFile.fileName.endsWith('.test.ts') ||
+    sourceFile.fileName.endsWith('.spec.ts')
   );
+}
+
+function serializeSymbol(
+  symbol: ts.Symbol,
+  checker: ts.TypeChecker,
+  rootDir?: string
+): DocEntry | null {
+  const declaration = symbol.valueDeclaration || symbol.declarations?.[0];
+
+  if (!declaration) {
+    return null;
+  }
+
+  const declarationSourceFile = declaration.getSourceFile();
+  if (shouldSkipFile(declarationSourceFile)) {
+    return null;
+  }
+
+  if (ts.isInterfaceDeclaration(declaration)) {
+    return serializeInterface(symbol, checker, declarationSourceFile, rootDir);
+  }
+
+  if (ts.isTypeAliasDeclaration(declaration)) {
+    return serializeTypeAlias(symbol, checker, declarationSourceFile, rootDir);
+  }
+
+  if (ts.isFunctionDeclaration(declaration)) {
+    return serializeFunction(symbol, checker, declarationSourceFile, rootDir);
+  }
+
+  if (ts.isClassDeclaration(declaration)) {
+    return serializeClass(symbol, checker, declarationSourceFile, rootDir);
+  }
+
+  if (ts.isEnumDeclaration(declaration)) {
+    return serializeEnum(symbol, checker, declarationSourceFile, rootDir);
+  }
+
+  if (ts.isVariableDeclaration(declaration)) {
+    return serializeVariable(symbol, checker, declarationSourceFile, rootDir);
+  }
+
+  return null;
 }

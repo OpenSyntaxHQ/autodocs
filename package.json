@@ -1,27 +1,45 @@
 {
   "name": "autodocs-monorepo",
+  "version": "1.0.0",
   "private": true,
   "license": "Apache-2.0",
   "packageManager": "npm@11.7.0",
+  "workspaces": [
+    "packages/*",
+    "packages/plugins/*"
+  ],
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "test": "turbo run test"
+    "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,md,json}\"",
+    "test": "turbo run test",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "serve:test": "node scripts/serve-test-docs.js",
+    "type-check": "turbo run type-check",
+    "docs:build": "npm run build && node packages/cli/dist/index.js build",
+    "version": "node scripts/version.js",
+    "clean": "turbo run clean && rm -rf node_modules .turbo",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
-    "@types/node": "latest",
-    "eslint": "latest",
+    "@axe-core/playwright": "^4.10.1",
+    "@playwright/test": "^1.52.0",
+    "@types/node": "^20.11.0",
+    "@types/tmp": "^0.2.6",
+    "eslint": "^9.0.0",
+    "execa": "^9.6.0",
     "globals": "^17.2.0",
-    "prettier": "latest",
-    "turbo": "latest",
-    "typescript": "latest",
+    "husky": "^9.0.0",
+    "lint-staged": "^15.0.0",
+    "prettier": "^3.2.0",
+    "tmp": "^0.2.3",
+    "turbo": "^2.8.3",
+    "typescript": "^5.9.0",
     "typescript-eslint": "^8.54.0"
-  },
-  "workspaces": [
-    "packages/*",
-    "examples/*"
-  ]
+  }
 }
