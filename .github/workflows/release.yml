@@ -24,17 +24,15 @@ jobs:
       - name: Run tests
         run: npm run test
       - name: Publish packages
-        run: |
-          cd packages/core
-          npm publish --access public
-          cd ../cli
-          npm publish --access public
-          cd ../plugins/markdown
-          npm publish --access public
-          cd ../plugins/examples
-          npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          npm config set //registry.npmjs.org/:_authToken=$NODE_AUTH_TOKEN
+          npm -w packages/core publish --access public
+          npm -w packages/cli publish --access public
+          npm -w packages/plugins/markdown publish --access public
+          npm -w packages/plugins/examples publish --access public
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
