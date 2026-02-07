@@ -1,4 +1,4 @@
-import FlexSearch from 'flexsearch';
+import { Document as FlexSearchDocument } from 'flexsearch';
 import { DocEntry } from '../store';
 
 export interface SearchResult {
@@ -10,6 +10,7 @@ export interface SearchResult {
 }
 
 interface SearchDoc {
+  [key: string]: string;
   id: string;
   name: string;
   kind: string;
@@ -17,11 +18,11 @@ interface SearchDoc {
 }
 
 export class SearchIndex {
-  private index: FlexSearch.Document<SearchDoc, string[]>;
+  private index: FlexSearchDocument<SearchDoc>;
   private store: Map<string, SearchDoc> = new Map();
 
   constructor() {
-    this.index = new FlexSearch.Document({
+    this.index = new FlexSearchDocument({
       document: {
         id: 'id',
         index: ['name', 'summary', 'kind'],
@@ -75,7 +76,7 @@ export class SearchIndex {
   }
 
   clear(): void {
-    this.index = new FlexSearch.Document({
+    this.index = new FlexSearchDocument({
       document: {
         id: 'id',
         index: ['name', 'summary', 'kind'],
