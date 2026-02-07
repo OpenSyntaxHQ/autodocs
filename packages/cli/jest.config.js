@@ -6,6 +6,19 @@ module.exports = {
   roots: ['<rootDir>/src', '<rootDir>/tests'],
   testMatch: ['**/__tests__/**/*.ts', '**/*.test.ts', '**/*.spec.ts'],
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+  transform: {
+    '^.+\\.[tj]sx?$': [
+      'ts-jest',
+      {
+        tsconfig: {
+          allowJs: true,
+        },
+      },
+    ],
+  },
+  transformIgnorePatterns: [
+    'node_modules/(?!(chalk|glob|inquirer|open|ora|jiti|cli-cursor|restore-cursor|onetime|mimic-function|is-interactive|is-unicode-supported|log-symbols|stdin-discarder|string-width|strip-ansi|ansi-escapes|wcwidth)/)',
+  ],
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.d.ts',

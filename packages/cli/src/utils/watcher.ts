@@ -1,4 +1,4 @@
-import chokidar from 'chokidar';
+import { watch, type FSWatcher } from 'chokidar';
 import { EventEmitter } from 'events';
 
 export interface WatchOptions {
@@ -8,7 +8,7 @@ export interface WatchOptions {
 }
 
 export class FileWatcher extends EventEmitter {
-  private watcher: chokidar.FSWatcher | null = null;
+  private watcher: FSWatcher | null = null;
   private debounceTimer: NodeJS.Timeout | null = null;
   private options: Required<WatchOptions>;
 
@@ -23,7 +23,7 @@ export class FileWatcher extends EventEmitter {
   }
 
   start(): void {
-    this.watcher = chokidar.watch(this.options.paths, {
+    const watcher = watch(this.options.paths, {
       ignored: this.options.ignored,
       persistent: true,
       ignoreInitial: true,
@@ -33,13 +33,15 @@ export class FileWatcher extends EventEmitter {
       },
     });
 
-    this.watcher.on('change', (path) => {
+    this.watcher = watcher;
+
+    watcher.on('change', (path: string) => {
       this.handleChange(path);
     });
-    this.watcher.on('add', (path) => {
+    watcher.on('add', (path: string) => {
       this.handleChange(path);
     });
-    this.watcher.on('unlink', (path) => {
+    watcher.on('unlink', (path: string) => {
       this.handleChange(path);
     });
 

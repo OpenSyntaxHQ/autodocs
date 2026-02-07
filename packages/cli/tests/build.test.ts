@@ -17,13 +17,26 @@ jest.mock('child_process', () => ({
 
 import { buildReactUI } from '../src/commands/build';
 
-const createSpinner = () => ({
-  text: '',
-  start: jest.fn().mockReturnThis(),
-  succeed: jest.fn().mockReturnThis(),
-  fail: jest.fn().mockReturnThis(),
-  warn: jest.fn().mockReturnThis(),
-});
+import type { Ora } from 'ora';
+
+const createSpinner = (): Ora =>
+  ({
+    text: '',
+    isSpinning: false,
+    color: 'cyan',
+    prefixText: '',
+    indent: 0,
+    start: jest.fn().mockReturnThis(),
+    succeed: jest.fn().mockReturnThis(),
+    fail: jest.fn().mockReturnThis(),
+    warn: jest.fn().mockReturnThis(),
+    info: jest.fn().mockReturnThis(),
+    stop: jest.fn().mockReturnThis(),
+    stopAndPersist: jest.fn().mockReturnThis(),
+    clear: jest.fn().mockReturnThis(),
+    render: jest.fn().mockReturnThis(),
+    frame: jest.fn().mockReturnValue(''),
+  }) as unknown as Ora;
 
 describe('buildReactUI', () => {
   it('writes docs.json and config.json into the output directory', async () => {
@@ -54,7 +67,7 @@ describe('buildReactUI', () => {
     await fs.writeFile(faviconPath, '<svg></svg>', 'utf-8');
 
     const outputDir = path.join(tempDir, 'out');
-    const spinner = createSpinner() as unknown as ReturnType<typeof import('ora')>;
+    const spinner = createSpinner();
 
     const configDir = path.join(tempDir, 'config');
     const docsDir = path.join(configDir, 'docs');
@@ -66,7 +79,7 @@ describe('buildReactUI', () => {
       uiDir,
       configDir,
       uiConfig: {
-        theme: { primaryColor: '#123456', logo: logoPath, favicon: faviconPath },
+        theme: { name: 'Test', primaryColor: '#123456', logo: logoPath, favicon: faviconPath },
         features: { search: false },
         sidebar: [{ title: 'Guide', path: '/docs/intro.md' }],
       },

@@ -38,7 +38,7 @@ export function registerServe(program: Command): void {
         app.use(express.default.static(docsDir));
 
         // SPA fallback - serve index.html for all routes (for React Router)
-        app.get('*', (_req: import('express').Request, res: import('express').Response) => {
+        app.get(/(.*)/, (_req: import('express').Request, res: import('express').Response) => {
           res.sendFile(path.join(docsDir, 'index.html'), (err: unknown) => {
             if (err) {
               res.status(404).send('Documentation not found. Run: autodocs build');

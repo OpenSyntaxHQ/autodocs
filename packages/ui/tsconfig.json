@@ -8,6 +8,7 @@
     "jsx": "react-jsx",
     "moduleResolution": "bundler",
     "noEmit": true,
+    "types": ["vitest/globals", "@testing-library/jest-dom"],
     "paths": {
       "@/*": ["./src/*"]
     }

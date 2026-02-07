@@ -1,12 +1,12 @@
 import { cosmiconfig } from 'cosmiconfig';
 import fs from 'fs';
 import path from 'path';
-import jiti from 'jiti';
+import { createJiti } from 'jiti';
 import { AutodocsConfig } from './types';
 import { DEFAULT_CONFIG } from './defaults';
 
 // Setup jiti for loading TS files
-const jitiLoader = jiti(__filename);
+const jiti = createJiti(__filename);
 
 export async function loadConfig(searchFrom?: string): Promise<AutodocsConfig | null> {
   const explorer = cosmiconfig('autodocs', {
@@ -19,7 +19,7 @@ export async function loadConfig(searchFrom?: string): Promise<AutodocsConfig | 
       'package.json',
     ],
     loaders: {
-      '.ts': (filepath: string) => jitiLoader(filepath) as unknown,
+      '.ts': (filepath: string) => jiti.import(filepath, { default: true }),
     },
   });
 
@@ -39,7 +39,7 @@ export async function loadConfig(searchFrom?: string): Promise<AutodocsConfig | 
           return mergeConfig(DEFAULT_CONFIG, JSON.parse(raw) as Partial<AutodocsConfig>);
         }
         if (['.ts', '.js', '.mjs', '.cjs'].includes(ext)) {
-          const loaded = jitiLoader(resolvedPath) as unknown;
+          const loaded = await jiti.import(resolvedPath, { default: true });
           const config = (loaded as { default?: unknown }).default || loaded;
           return mergeConfig(DEFAULT_CONFIG, config as Partial<AutodocsConfig>);
         }
