@@ -1,0 +1,52 @@
+name: Preflight Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - develop
+      - main
+
+jobs:
+  preflight:
+    name: Preflight checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build packages
+        run: npm run build
+      - name: Type check
+        run: npm run type-check
+      - name: Lint
+        run: npm run lint
+      - name: Test
+        run: npm run test
+      - name: Pack publishable packages
+        run: |
+          npm -w packages/core pack
+          npm -w packages/cli pack
+          npm -w packages/plugins/markdown pack
+          npm -w packages/plugins/examples pack
+          rm -f opensyntaxhq-*.tgz
+      - name: Publish dry-run (requires NPM_TOKEN)
+        if: ${{ env.NPM_TOKEN != '' }}
+        env:
+          NODE_AUTH_TOKEN: ${{ env.NPM_TOKEN }}
+        run: |
+          npm config set //registry.npmjs.org/:_authToken=$NODE_AUTH_TOKEN
+          npm -w packages/core publish --dry-run
+          npm -w packages/cli publish --dry-run
+          npm -w packages/plugins/markdown publish --dry-run
+          npm -w packages/plugins/examples publish --dry-run
