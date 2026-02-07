@@ -7,9 +7,6 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "automated"
     commit-message:
       prefix: "chore"
       include: "scope"
@@ -24,6 +21,3 @@ updates:
     target-branch: "develop"
     schedule:
       interval: "weekly"
-    labels:
-      - "github-actions"
-      - "automated"
