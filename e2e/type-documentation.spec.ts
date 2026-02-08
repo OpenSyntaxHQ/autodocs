@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './coverage';
 
 test('type documentation page renders signature', async ({ page }) => {
   const docsResponse = await page.request.get('/docs.json');

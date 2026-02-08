@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './coverage';
 
 test('mobile navigation shows menu button', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 800 });
