@@ -1,6 +1,6 @@
 {
   "name": "@opensyntaxhq/autodocs-plugin-examples",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "license": "Apache-2.0",
   "description": "Code example validation and extraction plugin for Autodocs",
   "repository": {
@@ -45,10 +45,10 @@
     "typescript": "^5.9.3"
   },
   "peerDependencies": {
-    "@opensyntaxhq/autodocs-core": "^1.0.0"
+    "@opensyntaxhq/autodocs-core": "^2.0.0"
   },
   "devDependencies": {
-    "@opensyntaxhq/autodocs-core": "^1.0.0",
+    "@opensyntaxhq/autodocs-core": "^2.0.0",
     "@types/node": "^25.2.2",
     "tsup": "^8.5.1"
   }
