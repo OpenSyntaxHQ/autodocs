@@ -12,6 +12,8 @@ jobs:
     name: E2E (chromium)
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      E2E_COVERAGE: '1'
     steps:
       - uses: actions/checkout@v6
       - name: Setup Node.js
@@ -27,6 +29,15 @@ jobs:
         run: npm run build
       - name: Run E2E tests
         run: npx playwright test --project=chromium
+      - name: Merge E2E coverage
+        run: node scripts/merge-e2e-coverage.js
+      - name: Upload E2E coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage-e2e/lcov.info
+          flags: e2e
+          fail_ci_if_error: false
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@v6
