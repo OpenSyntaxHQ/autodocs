@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import defaultLogo from '@/assets/logo.svg';
+import { docPath } from '@/lib/routes';
 
 function pluralize(kind: string, count: number): string {
   const singular = kind.toLowerCase();
@@ -97,9 +98,7 @@ export function HomePage() {
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <Button variant="default" asChild className="rounded-full">
-                <Link to={firstDoc ? `/${firstDoc.kind}/${firstDoc.name}` : '/'}>
-                  Explore the API
-                </Link>
+                <Link to={firstDoc ? docPath(firstDoc) : '/'}>Explore the API</Link>
               </Button>
               {searchEnabled && (
                 <Button variant="outline" className="rounded-full" onClick={toggleSearch}>
@@ -173,7 +172,7 @@ export function HomePage() {
                   {items.slice(0, 5).map((item) => (
                     <li key={item.id}>
                       <Link
-                        to={`/${kind}/${item.name}`}
+                        to={docPath(item)}
                         className="text-primary font-medium hover:underline underline-offset-4"
                       >
                         {item.name}

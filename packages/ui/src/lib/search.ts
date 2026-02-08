@@ -4,7 +4,7 @@ import { DocEntry } from '../store';
 export interface SearchResult {
   id: string;
   name: string;
-  kind: string;
+  kind: DocEntry['kind'];
   summary: string;
   score: number;
 }
@@ -13,7 +13,7 @@ interface SearchDoc {
   [key: string]: string;
   id: string;
   name: string;
-  kind: string;
+  kind: DocEntry['kind'];
   summary: string;
 }
 

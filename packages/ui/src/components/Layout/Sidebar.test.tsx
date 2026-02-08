@@ -43,7 +43,7 @@ describe('Sidebar', () => {
   it('highlights the active route', () => {
     const { getByRole } = renderWithStore(<Sidebar />, {
       initialState: { docs },
-      route: '/function/Alpha',
+      route: '/function/fn-alpha/alpha',
     });
 
     const link = getByRole('link', { name: 'Alpha' });

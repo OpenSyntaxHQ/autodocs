@@ -4,6 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn, slugify } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { docPath } from '@/lib/routes';
 
 interface SidebarProps {
   className?: string;
@@ -115,22 +116,25 @@ export function Sidebar({ className }: SidebarProps) {
                     </Badge>
                   </div>
                   <ul className="space-y-1">
-                    {sortedItems.map((item) => (
-                      <li key={item.id}>
-                        <Link
-                          to={`/${kind}/${item.name}`}
-                          className={cn(
-                            buttonVariants({ variant: 'ghost', size: 'sm' }),
-                            'w-full justify-start rounded-xl px-3 py-2 text-sm',
-                            location.pathname === `/${kind}/${item.name}`
-                              ? 'bg-primary/10 text-foreground shadow-sm shadow-primary/10'
-                              : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'
-                          )}
-                        >
-                          {item.name}
-                        </Link>
-                      </li>
-                    ))}
+                    {sortedItems.map((item) => {
+                      const itemPath = docPath(item);
+                      return (
+                        <li key={item.id}>
+                          <Link
+                            to={itemPath}
+                            className={cn(
+                              buttonVariants({ variant: 'ghost', size: 'sm' }),
+                              'w-full justify-start rounded-xl px-3 py-2 text-sm',
+                              location.pathname === itemPath
+                                ? 'bg-primary/10 text-foreground shadow-sm shadow-primary/10'
+                                : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'
+                            )}
+                          >
+                            {item.name}
+                          </Link>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               );

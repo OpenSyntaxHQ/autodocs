@@ -40,9 +40,18 @@ export function serializeInterface(
         const heritageType = checker.getTypeAtLocation(typeNode);
         const heritageSymbol = heritageType.getSymbol();
 
+        const heritageName = heritageSymbol?.getName() || 'unknown';
+        const heritageKind = getSymbolKind(heritageSymbol);
+        const heritageSource = getSymbolSourceInfo(heritageSymbol, rootDir);
+
         heritage.push({
-          id: generateId(heritageSymbol?.getName() || 'unknown'),
-          name: heritageSymbol?.getName() || 'unknown',
+          id: generateEntryId({
+            kind: heritageKind,
+            name: heritageName,
+            module: heritageSource.module,
+            file: heritageSource.file,
+          }),
+          name: heritageName,
           kind: 'extends',
         });
       }
@@ -73,7 +82,12 @@ export function serializeInterface(
   }
 
   return {
-    id: generateId(symbol.getName()),
+    id: generateEntryId({
+      kind: 'interface',
+      name: symbol.getName(),
+      module: sourceInfo.module,
+      file: sourceInfo.file,
+    }),
     name: symbol.getName(),
     kind: 'interface',
     fileName: sourceInfo.file,
@@ -120,7 +134,12 @@ export function serializeTypeAlias(
   }
 
   return {
-    id: generateId(symbol.getName()),
+    id: generateEntryId({
+      kind: 'type',
+      name: symbol.getName(),
+      module: sourceInfo.module,
+      file: sourceInfo.file,
+    }),
     name: symbol.getName(),
     kind: 'type',
     fileName: sourceInfo.file,
@@ -173,7 +192,12 @@ export function serializeFunction(
   const returnType = signature.getReturnType();
 
   return {
-    id: generateId(symbol.getName()),
+    id: generateEntryId({
+      kind: 'function',
+      name: symbol.getName(),
+      module: sourceInfo.module,
+      file: sourceInfo.file,
+    }),
     name: symbol.getName(),
     kind: 'function',
     fileName: sourceInfo.file,
@@ -229,9 +253,18 @@ export function serializeClass(
         const heritageSymbol = heritageType.getSymbol();
         const kind = clause.token === ts.SyntaxKind.ExtendsKeyword ? 'extends' : 'implements';
 
+        const heritageName = heritageSymbol?.getName() || 'unknown';
+        const heritageKind = getSymbolKind(heritageSymbol);
+        const heritageSource = getSymbolSourceInfo(heritageSymbol, rootDir);
+
         heritage.push({
-          id: generateId(heritageSymbol?.getName() || 'unknown'),
-          name: heritageSymbol?.getName() || 'unknown',
+          id: generateEntryId({
+            kind: heritageKind,
+            name: heritageName,
+            module: heritageSource.module,
+            file: heritageSource.file,
+          }),
+          name: heritageName,
           kind,
         });
       }
@@ -266,7 +299,12 @@ export function serializeClass(
   }
 
   return {
-    id: generateId(symbol.getName()),
+    id: generateEntryId({
+      kind: 'class',
+      name: symbol.getName(),
+      module: sourceInfo.module,
+      file: sourceInfo.file,
+    }),
     name: symbol.getName(),
     kind: 'class',
     fileName: sourceInfo.file,
@@ -315,7 +353,12 @@ export function serializeEnum(
   });
 
   return {
-    id: generateId(symbol.getName()),
+    id: generateEntryId({
+      kind: 'enum',
+      name: symbol.getName(),
+      module: sourceInfo.module,
+      file: sourceInfo.file,
+    }),
     name: symbol.getName(),
     kind: 'enum',
     fileName: sourceInfo.file,
@@ -345,7 +388,12 @@ export function serializeVariable(
   const sourceInfo = getSourceInfo(declaration, sourceFile, rootDir);
 
   return {
-    id: generateId(symbol.getName()),
+    id: generateEntryId({
+      kind: 'variable',
+      name: symbol.getName(),
+      module: sourceInfo.module,
+      file: sourceInfo.file,
+    }),
     name: symbol.getName(),
     kind: 'variable',
     fileName: sourceInfo.file,
@@ -361,8 +409,41 @@ export function serializeVariable(
   };
 }
 
-function generateId(name: string): string {
-  return crypto.createHash('md5').update(name).digest('hex').slice(0, 8);
+function generateEntryId({
+  kind,
+  name,
+  module,
+  file,
+}: {
+  kind: string;
+  name: string;
+  module?: string;
+  file?: string;
+}): string {
+  const scope = module || file || 'unknown';
+  return crypto.createHash('md5').update(`${kind}|${scope}|${name}`).digest('hex').slice(0, 8);
+}
+
+function getSymbolKind(symbol?: ts.Symbol): string {
+  const declaration = symbol?.valueDeclaration ?? symbol?.declarations?.[0];
+  if (!declaration) return 'unknown';
+  if (ts.isClassDeclaration(declaration)) return 'class';
+  if (ts.isInterfaceDeclaration(declaration)) return 'interface';
+  if (ts.isTypeAliasDeclaration(declaration)) return 'type';
+  if (ts.isEnumDeclaration(declaration)) return 'enum';
+  if (ts.isFunctionDeclaration(declaration)) return 'function';
+  if (ts.isVariableDeclaration(declaration)) return 'variable';
+  return 'unknown';
+}
+
+function getSymbolSourceInfo(
+  symbol?: ts.Symbol,
+  rootDir?: string
+): { module?: string; file?: string } {
+  const declaration = symbol?.valueDeclaration ?? symbol?.declarations?.[0];
+  if (!declaration) return {};
+  const info = getSourceInfo(declaration, declaration.getSourceFile(), rootDir);
+  return { module: info.module, file: info.file };
 }
 
 function generateInterfaceSignature(

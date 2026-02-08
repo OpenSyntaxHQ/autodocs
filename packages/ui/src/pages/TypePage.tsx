@@ -3,17 +3,17 @@ import { useStore } from '../store';
 import { TypeView } from '../components/Documentation/TypeView';
 
 export function TypePage() {
-  const { kind, name } = useParams<{ kind: string; name: string }>();
+  const { kind, id } = useParams<{ kind: string; id: string; slug?: string }>();
   const docs = useStore((state) => state.docs);
 
-  const entry = docs.find((d) => d.kind === kind && d.name === name);
+  const entry = kind && id ? docs.find((d) => d.id === id && d.kind === kind) : undefined;
 
   if (!entry) {
     return (
       <div className="text-center">
         <h1 className="text-2xl font-bold text-foreground">Not Found</h1>
         <p className="mt-2 text-muted-foreground">
-          Could not find documentation for {kind}/{name}
+          Could not find documentation for {kind ?? 'unknown'}/{id ?? 'unknown'}
         </p>
       </div>
     );

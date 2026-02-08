@@ -20,9 +20,9 @@ describe('TypePage', () => {
     useStore.setState({ docs });
 
     const { getByText } = render(
-      <MemoryRouter initialEntries={['/function/Alpha']}>
+      <MemoryRouter initialEntries={['/function/alpha/alpha']}>
         <Routes>
-          <Route path="/:kind/:name" element={<TypePage />} />
+          <Route path="/:kind/:id/:slug?" element={<TypePage />} />
         </Routes>
       </MemoryRouter>
     );
@@ -34,9 +34,9 @@ describe('TypePage', () => {
     useStore.setState({ docs: [] });
 
     const { getByText } = render(
-      <MemoryRouter initialEntries={['/function/Missing']}>
+      <MemoryRouter initialEntries={['/function/missing/missing']}>
         <Routes>
-          <Route path="/:kind/:name" element={<TypePage />} />
+          <Route path="/:kind/:id/:slug?" element={<TypePage />} />
         </Routes>
       </MemoryRouter>
     );
