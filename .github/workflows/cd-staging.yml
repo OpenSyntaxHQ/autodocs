@@ -41,7 +41,6 @@ jobs:
         with:
           publish-dir: './docs-dist'
           production-deploy: false
-          github-token: ${{ secrets.GITHUB_TOKEN }}
           deploy-message: "Staging deployment from develop"
           alias: staging
         env:
