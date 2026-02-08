@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/OpenSyntaxHQ/autodocs/workflows/CI/badge.svg)](https://github.com/OpenSyntaxHQ/autodocs/actions)
 [![codecov](https://codecov.io/gh/OpenSyntaxHQ/autodocs/branch/main/graph/badge.svg)](https://codecov.io/gh/OpenSyntaxHQ/autodocs)
-[![npm version](https://badge.fury.io/js/@opensyntaxhq%2Fautodocs.svg)](https://www.npmjs.com/package/@opensyntaxhq/autodocs)
+[![npm version](https://img.shields.io/npm/v/%40opensyntaxhq%2Fautodocs?logo=npm&color=cb3837)](https://www.npmjs.com/package/@opensyntaxhq/autodocs)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 ## Features
