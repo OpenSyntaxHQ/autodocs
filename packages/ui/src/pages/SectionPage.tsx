@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { useStore, DocEntry } from '@/store';
 import { slugify } from '@/lib/utils';
+import { docPath } from '@/lib/routes';
 
 function pluralize(kind: string, count: number): string {
   const singular = kind.toLowerCase();
@@ -138,7 +139,7 @@ export function SectionPage() {
                   {items.slice(0, 6).map((item) => (
                     <li key={item.id}>
                       <Link
-                        to={`/${kind}/${item.name}`}
+                        to={docPath(item)}
                         className="font-medium text-primary underline-offset-4 hover:underline"
                       >
                         {item.name}

@@ -1,8 +1,8 @@
 # @opensyntaxhq/autodocs-core
 
-Core parsing and extraction engine for Autodocs.
+Core parsing, extraction, and generation engine for Autodocs.
 
-## Installation
+## Install
 
 ```bash
 npm install @opensyntaxhq/autodocs-core
@@ -10,8 +10,23 @@ npm install @opensyntaxhq/autodocs-core
 
 ## Usage
 
-```typescript
-import { VERSION } from '@opensyntaxhq/autodocs-core';
+```ts
+import path from 'path';
+import { createProgram, extractDocs, generateJson } from '@opensyntaxhq/autodocs-core';
 
-console.log(VERSION);
+const entryFile = path.join(process.cwd(), 'src/index.ts');
+const { program, rootDir } = createProgram([entryFile]);
+const docs = extractDocs(program, { rootDir });
+
+await generateJson(docs, path.join(process.cwd(), 'docs-dist'), {
+  pretty: true,
+  rootDir,
+});
 ```
+
+## API Surface
+
+- `createProgram` / `extractDocs`
+- `generateJson`, `generateMarkdown`, `generateHtml`
+- `PluginManager`
+- `FileCache` and `incrementalBuild`

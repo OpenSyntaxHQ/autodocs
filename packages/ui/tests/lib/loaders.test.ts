@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { loadDocs, applyTheme } from './loaders';
-import { DocEntry } from '../store';
+import { loadDocs, applyTheme, loadConfig } from '@/lib/loaders';
+import { DocEntry } from '@/store';
 
 const sampleEntries: DocEntry[] = [
   {
@@ -47,6 +47,22 @@ describe('loadDocs', () => {
 
     await expect(loadDocs()).rejects.toThrow('docs.json missing entries');
   });
+
+  it('returns meta when provided', async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () =>
+        Promise.resolve({
+          meta: { version: '1.2.3', stats: { total: 1, byKind: {}, byModule: {} } },
+          entries: sampleEntries,
+        }),
+    } as Response);
+
+    const payload = await loadDocs();
+    expect(payload.meta?.version).toBe('1.2.3');
+  });
 });
 
 describe('applyTheme', () => {
@@ -74,5 +90,32 @@ describe('applyTheme', () => {
     const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
     expect(link).not.toBeNull();
     expect(link?.href).toContain('/favicon.svg');
+  });
+
+  it('does nothing without theme config', () => {
+    applyTheme(null);
+    expect(document.documentElement.style.cssText).toBe('');
+    expect(document.querySelector('link[rel="icon"]')).toBeNull();
+  });
+});
+
+describe('loadConfig', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('returns null when config is missing', async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: () => Promise.resolve({}),
+    } as Response);
+
+    await expect(loadConfig()).resolves.toBeNull();
   });
 });

@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { render } from '@testing-library/react';
-import { TypePage } from './TypePage';
-import { useStore, DocEntry } from '../store';
+import { TypePage } from '@/pages/TypePage';
+import { useStore, DocEntry } from '@/store';
 
 const docs: DocEntry[] = [
   {
@@ -20,9 +20,9 @@ describe('TypePage', () => {
     useStore.setState({ docs });
 
     const { getByText } = render(
-      <MemoryRouter initialEntries={['/function/Alpha']}>
+      <MemoryRouter initialEntries={['/function/alpha/alpha']}>
         <Routes>
-          <Route path="/:kind/:name" element={<TypePage />} />
+          <Route path="/:kind/:id/:slug?" element={<TypePage />} />
         </Routes>
       </MemoryRouter>
     );
@@ -34,9 +34,9 @@ describe('TypePage', () => {
     useStore.setState({ docs: [] });
 
     const { getByText } = render(
-      <MemoryRouter initialEntries={['/function/Missing']}>
+      <MemoryRouter initialEntries={['/function/missing/missing']}>
         <Routes>
-          <Route path="/:kind/:name" element={<TypePage />} />
+          <Route path="/:kind/:id/:slug?" element={<TypePage />} />
         </Routes>
       </MemoryRouter>
     );

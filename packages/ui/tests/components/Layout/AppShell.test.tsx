@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { render } from '@testing-library/react';
-import { AppShell } from './AppShell';
-import { useStore } from '../../store';
+import { AppShell } from '@/components/Layout/AppShell';
+import { useStore } from '@/store';
 
 function renderWithRoute(initialState: Partial<ReturnType<typeof useStore.getState>> = {}) {
   useStore.setState({

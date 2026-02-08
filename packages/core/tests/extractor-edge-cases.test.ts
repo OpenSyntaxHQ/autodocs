@@ -71,4 +71,71 @@ describe('Extractor Edge Cases', () => {
     expect(entry?.kind).toBe('interface');
     expect(entry?.members?.length).toBeGreaterThan(0);
   });
+
+  it('builds stable heritage ids for multiple symbol shapes', async () => {
+    const tempDir = await createTempDir('autodocs-extractor-');
+    const entryPath = await writeTempFile(
+      tempDir,
+      'src/heritage.ts',
+      `
+        export interface InterfaceBase {
+          value: string;
+        }
+        export type TypeBase = {
+          count: number;
+        };
+        export class ClassBase {}
+        export const VariableBase = class {};
+        export function FunctionBase(this: unknown) {}
+        export enum EnumBase {
+          Alpha = 'alpha'
+        }
+
+        export interface InterfaceChild extends InterfaceBase {}
+        export interface TypeChild extends TypeBase {}
+        export interface UnknownChild extends MissingBase {}
+
+        export class ClassChild extends ClassBase {}
+        export class VariableChild extends VariableBase {}
+        export class FunctionChild extends (FunctionBase as unknown as { new (): unknown }) {}
+        export class EnumChild extends (EnumBase as unknown as { new (): unknown }) {}
+      `
+    );
+
+    const result = createProgram([entryPath]);
+    const docs = extractDocs(result.program, { rootDir: tempDir });
+
+    const interfaceChild = docs.find((d) => d.name === 'InterfaceChild');
+    const typeChild = docs.find((d) => d.name === 'TypeChild');
+    const unknownChild = docs.find((d) => d.name === 'UnknownChild');
+    const classChild = docs.find((d) => d.name === 'ClassChild');
+    const variableChild = docs.find((d) => d.name === 'VariableChild');
+    const functionChild = docs.find((d) => d.name === 'FunctionChild');
+    const enumChild = docs.find((d) => d.name === 'EnumChild');
+
+    expect(interfaceChild?.heritage?.[0]).toMatchObject({ name: 'InterfaceBase', kind: 'extends' });
+    expect(typeChild?.heritage?.[0]).toMatchObject({ kind: 'extends' });
+    expect(typeChild?.heritage?.[0]?.name).toBeTruthy();
+    expect(unknownChild?.heritage?.[0]).toMatchObject({ name: 'unknown', kind: 'extends' });
+    expect(classChild?.heritage?.[0]).toMatchObject({ kind: 'extends' });
+    expect(variableChild?.heritage?.[0]).toMatchObject({ kind: 'extends' });
+    expect(functionChild?.heritage?.[0]).toMatchObject({ kind: 'extends' });
+    expect(enumChild?.heritage?.[0]).toMatchObject({ kind: 'extends' });
+    expect(classChild?.heritage?.[0]?.name).toBeTruthy();
+    expect(variableChild?.heritage?.[0]?.name).toBeTruthy();
+    expect(functionChild?.heritage?.[0]?.name).toBeTruthy();
+    expect(enumChild?.heritage?.[0]?.name).toBeTruthy();
+
+    for (const entry of [
+      interfaceChild,
+      typeChild,
+      unknownChild,
+      classChild,
+      variableChild,
+      functionChild,
+      enumChild,
+    ]) {
+      expect(entry?.heritage?.[0]?.id).toMatch(/^[0-9a-f]{8}$/);
+    }
+  });
 });

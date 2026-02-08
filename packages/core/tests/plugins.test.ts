@@ -1,5 +1,32 @@
 import { PluginManager } from '../src/plugins';
-import type { Plugin, PluginContext, Logger } from '../src/plugins';
+import type { Plugin, Logger } from '../src/plugins';
+
+jest.mock(
+  '@opensyntaxhq/autodocs-plugin-default',
+  () => ({
+    name: 'default-plugin',
+    version: '1.0.0',
+  }),
+  { virtual: true }
+);
+
+jest.mock(
+  '@opensyntaxhq/autodocs-plugin-factory',
+  () => () => ({
+    name: 'factory-plugin',
+    version: '1.0.0',
+  }),
+  { virtual: true }
+);
+
+jest.mock(
+  '@custom/plugin',
+  () => ({
+    name: 'custom-plugin',
+    version: '1.0.0',
+  }),
+  { virtual: true }
+);
 
 describe('PluginManager', () => {
   it('loads plugins, runs hooks in order, and cleans up', async () => {
@@ -14,23 +41,31 @@ describe('PluginManager', () => {
     const pluginA: Plugin = {
       name: 'plugin-a',
       version: '1.0.0',
-      initialize: () => calls.push('init-a'),
+      initialize: () => {
+        calls.push('init-a');
+      },
       beforeParse: (files) => {
         calls.push('before-a');
         return [...files, 'a.ts'];
       },
-      cleanup: () => calls.push('cleanup-a'),
+      cleanup: () => {
+        calls.push('cleanup-a');
+      },
     };
 
     const pluginB: Plugin = {
       name: 'plugin-b',
       version: '1.0.0',
-      initialize: () => calls.push('init-b'),
+      initialize: () => {
+        calls.push('init-b');
+      },
       beforeParse: (files) => {
         calls.push('before-b');
         return [...files, 'b.ts'];
       },
-      cleanup: () => calls.push('cleanup-b'),
+      cleanup: () => {
+        calls.push('cleanup-b');
+      },
     };
 
     const manager = new PluginManager({}, logger);
@@ -74,7 +109,7 @@ describe('PluginManager', () => {
   });
 
   it('exposes context cache and events', async () => {
-    let capturedContext: PluginContext | null = null;
+    const payloads: string[] = [];
     const logger: Logger = {
       info: () => undefined,
       warn: () => undefined,
@@ -87,24 +122,94 @@ describe('PluginManager', () => {
       name: 'context-plugin',
       version: '1.0.0',
       initialize: (context) => {
-        capturedContext = context;
         context.cache.set('answer', 42);
+        expect(context.cache.get('answer')).toBe(42);
+        context.addHook('test', (data) => {
+          payloads.push(String(data));
+        });
+        context.emitEvent('test', 'ping');
       },
     });
 
-    const context = capturedContext as {
-      cache: Map<string, unknown>;
-      addHook: (name: string, handler: (data: unknown) => void) => void;
-      emitEvent: (name: string, data: unknown) => void;
+    expect(payloads).toEqual(['ping']);
+  });
+
+  it('resolves string plugins from default exports and factories', async () => {
+    const info = jest.fn();
+    const logger: Logger = {
+      info,
+      warn: () => undefined,
+      error: () => undefined,
+      debug: () => undefined,
     };
 
-    expect(context.cache.get('answer')).toBe(42);
+    const manager = new PluginManager({}, logger);
+    await manager.loadPlugin('default');
+    await manager.loadPlugin('factory');
 
-    const payloads: string[] = [];
-    context.addHook('test', (data) => {
-      payloads.push(String(data));
+    expect(info).toHaveBeenCalledWith('Loaded plugin: default-plugin');
+    expect(info).toHaveBeenCalledWith('Loaded plugin: factory-plugin');
+  });
+
+  it('accepts scoped plugin names without rewriting', async () => {
+    const info = jest.fn();
+    const logger: Logger = {
+      info,
+      warn: () => undefined,
+      error: () => undefined,
+      debug: () => undefined,
+    };
+
+    const manager = new PluginManager({}, logger);
+    await manager.loadPlugin('@custom/plugin');
+
+    expect(info).toHaveBeenCalledWith('Loaded plugin: custom-plugin');
+  });
+
+  it('keeps prior hook result when a hook returns undefined', async () => {
+    const logger: Logger = {
+      info: () => undefined,
+      warn: () => undefined,
+      error: () => undefined,
+      debug: () => undefined,
+    };
+
+    const manager = new PluginManager({}, logger);
+    const noopHook: Plugin = {
+      name: 'noop-hook',
+      version: '1.0.0',
+      beforeParse: ((_: string[]) => undefined) as unknown as Plugin['beforeParse'],
+    };
+    await manager.loadPlugin(noopHook);
+    await manager.loadPlugin({
+      name: 'append-hook',
+      version: '1.0.0',
+      beforeParse: (files) => [...files, 'extra.ts'],
     });
-    context.emitEvent('test', 'ping');
-    expect(payloads).toEqual(['ping']);
+
+    const files = await manager.runHook('beforeParse', ['entry.ts']);
+    expect(files).toEqual(['entry.ts', 'extra.ts']);
+  });
+
+  it('logs cleanup errors without throwing', async () => {
+    const error = jest.fn();
+    const logger: Logger = {
+      info: () => undefined,
+      warn: () => undefined,
+      error,
+      debug: () => undefined,
+    };
+
+    const manager = new PluginManager({}, logger);
+    await manager.loadPlugin({
+      name: 'cleanup-bomb',
+      version: '1.0.0',
+      cleanup: () => {
+        throw new Error('boom');
+      },
+    });
+
+    await manager.cleanup();
+    expect(error).toHaveBeenCalledWith(expect.stringContaining('cleanup-bomb'));
   });
 });

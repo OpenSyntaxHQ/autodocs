@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { HomePage } from './HomePage';
-import { useStore, DocEntry } from '../store';
+import { HomePage } from '@/pages/HomePage';
+import { useStore, DocEntry } from '@/store';
 
 const docs: DocEntry[] = [
   {

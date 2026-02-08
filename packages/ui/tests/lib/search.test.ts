@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { SearchIndex } from './search';
-import type { DocEntry } from '../store';
+import { SearchIndex } from '@/lib/search';
+import type { DocEntry } from '@/store';
 
 const docs: DocEntry[] = [
   {

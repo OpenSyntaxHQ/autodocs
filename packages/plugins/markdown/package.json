@@ -1,6 +1,6 @@
 {
   "name": "@opensyntaxhq/autodocs-plugin-markdown",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "license": "Apache-2.0",
   "description": "Markdown guide plugin for Autodocs",
   "repository": {
@@ -47,12 +47,12 @@
     "marked": "^17.0.1"
   },
   "peerDependencies": {
-    "@opensyntaxhq/autodocs-core": "^1.0.0"
+    "@opensyntaxhq/autodocs-core": "^2.0.0"
   },
   "devDependencies": {
-    "@opensyntaxhq/autodocs-core": "^1.0.0",
-    "@types/node": "^22.0.0",
-    "tsup": "^8.3.0",
-    "typescript": "^5.9.0"
+    "@opensyntaxhq/autodocs-core": "^2.0.0",
+    "@types/node": "^25.2.2",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
   }
 }

@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { useStore } from './index';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { useStore } from '@/store';
 
 function resetState() {
   useStore.setState({
@@ -18,11 +18,25 @@ describe('store', () => {
     resetState();
   });
 
+  afterEach(() => {
+    document.documentElement.classList.remove('dark');
+  });
+
   it('toggles theme', () => {
     useStore.getState().toggleTheme();
     expect(useStore.getState().theme).toBe('dark');
     useStore.getState().toggleTheme();
     expect(useStore.getState().theme).toBe('light');
+  });
+
+  it('sets theme and updates document class', () => {
+    useStore.getState().setTheme('dark');
+    expect(useStore.getState().theme).toBe('dark');
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+
+    useStore.getState().setTheme('light');
+    expect(useStore.getState().theme).toBe('light');
+    expect(document.documentElement.classList.contains('dark')).toBe(false);
   });
 
   it('manages sidebar and search state', () => {
@@ -51,5 +65,18 @@ describe('store', () => {
 
     useStore.getState().setConfig({ theme: { name: 'default' } });
     expect(useStore.getState().config?.theme?.name).toBe('default');
+  });
+
+  it('stores the current entry', () => {
+    useStore.getState().setCurrentEntry({
+      id: 'alpha',
+      name: 'Alpha',
+      kind: 'function',
+      fileName: 'src/alpha.ts',
+      position: { line: 1, column: 0 },
+      signature: 'function Alpha(): void',
+    });
+
+    expect(useStore.getState().currentEntry?.id).toBe('alpha');
   });
 });

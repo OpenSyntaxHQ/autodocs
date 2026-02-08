@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store';
 import { searchIndex, SearchResult } from '../../lib/search';
+import { docPath } from '@/lib/routes';
 import {
   CommandDialog,
   CommandEmpty,
@@ -90,7 +91,9 @@ export function CommandMenu() {
                 key={item.id}
                 value={item.name}
                 onSelect={() => {
-                  runCommand(() => navigate(`/${item.kind}/${item.name}`));
+                  runCommand(() =>
+                    navigate(docPath({ kind: item.kind, id: item.id, name: item.name }))
+                  );
                 }}
               >
                 {getIcon(item.kind)}
@@ -110,7 +113,7 @@ export function CommandMenu() {
                 key={doc.id}
                 value={doc.name}
                 onSelect={() => {
-                  runCommand(() => navigate(`/${doc.kind}/${doc.name}`));
+                  runCommand(() => navigate(docPath(doc)));
                 }}
               >
                 {getIcon(doc.kind)}

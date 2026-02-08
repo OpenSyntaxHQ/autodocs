@@ -30,7 +30,7 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       emptyOutDir: true,
-      sourcemap: mode === 'production',
+      sourcemap: mode === 'production' || process.env.E2E_COVERAGE === '1',
       minify: 'terser',
       terserOptions: {
         compress: {
@@ -55,13 +55,13 @@ export default defineConfig(({ mode }) => {
     test: {
       environment: 'jsdom',
       globals: true,
-      setupFiles: ['./src/test/setup.ts'],
+      setupFiles: ['./tests/setup.ts'],
       coverage: {
         provider: 'v8',
         reporter: ['text', 'json', 'html', 'lcov'],
         all: true,
         include: ['src/**/*.{ts,tsx}'],
-        exclude: ['src/**/*.test.{ts,tsx}', 'src/test/**', 'src/types/**', 'src/main.tsx'],
+        exclude: ['src/**/*.test.{ts,tsx}', 'tests/**', 'src/types/**', 'src/main.tsx'],
         thresholds: {
           branches: coverageThreshold,
           functions: coverageThreshold,

@@ -36,9 +36,28 @@ describe('FileWatcher', () => {
     jest.useRealTimers();
   });
 
+  it('debounces add/unlink events and clears timers', () => {
+    jest.useFakeTimers();
+    const watcher = new FileWatcher({ paths: ['src'], debounce: 30 });
+    const handler = jest.fn();
+    watcher.on('change', handler);
+
+    watcher.start();
+    emitter.emit('add', 'src/added.ts');
+    emitter.emit('unlink', 'src/removed.ts');
+
+    jest.advanceTimersByTime(35);
+
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(handler).toHaveBeenCalledWith('src/removed.ts');
+
+    jest.useRealTimers();
+  });
+
   it('stops the underlying watcher', async () => {
     const watcher = new FileWatcher({ paths: ['src'] });
     watcher.start();
+    emitter.emit('change', 'src/index.ts');
     await watcher.stop();
     expect(closeMock).toHaveBeenCalled();
   });

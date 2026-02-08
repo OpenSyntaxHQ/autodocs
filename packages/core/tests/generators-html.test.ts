@@ -61,4 +61,76 @@ describe('HTML Generator', () => {
     expect(enumHtml).toContain('Ready');
     expect(enumHtml).toContain('ready');
   });
+
+  it('renders parameters, returns, examples, and non-enum members', async () => {
+    const tempDir = await createTempDir('autodocs-html-branches-');
+
+    const docs: DocEntry[] = [
+      {
+        id: 'Transform',
+        name: 'Transform',
+        kind: 'function',
+        fileName: 'src/transform.ts',
+        position: { line: 1, column: 0 },
+        signature: 'function Transform(input: string): number',
+        parameters: [
+          {
+            name: 'input',
+            type: 'string',
+            optional: false,
+            rest: false,
+          },
+        ],
+        returnType: { text: 'number', kind: 'number' },
+        documentation: {
+          summary: 'Transform docs',
+          params: [{ name: 'input', text: 'Input docs' }],
+          returns: 'Return docs',
+          examples: [
+            {
+              language: 'ts',
+              code: '```ts\nTransform("ok")\n```',
+            },
+          ],
+          tags: [],
+        },
+      },
+      {
+        id: 'Widget',
+        name: 'Widget',
+        kind: 'interface',
+        fileName: 'src/widget.ts',
+        position: { line: 1, column: 0 },
+        signature: 'interface Widget',
+        members: [
+          {
+            name: 'name',
+            type: 'string',
+            optional: true,
+            readonly: true,
+            documentation: 'Widget name',
+          },
+        ],
+      },
+    ];
+
+    await generateHtml(docs, tempDir);
+
+    const transformHtml = await fs.readFile(
+      path.join(tempDir, 'api', 'function', 'Transform.html'),
+      'utf-8'
+    );
+    expect(transformHtml).toContain('Parameters');
+    expect(transformHtml).toContain('Input docs');
+    expect(transformHtml).toContain('Returns');
+    expect(transformHtml).toContain('Return docs');
+    expect(transformHtml).toContain('Examples');
+
+    const widgetHtml = await fs.readFile(
+      path.join(tempDir, 'api', 'interface', 'Widget.html'),
+      'utf-8'
+    );
+    expect(widgetHtml).toContain('Properties');
+    expect(widgetHtml).toContain('Widget name');
+  });
 });

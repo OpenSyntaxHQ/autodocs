@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './coverage';
 
 test('sidebar shows overview and groups', async ({ page }) => {
   await page.goto('/');

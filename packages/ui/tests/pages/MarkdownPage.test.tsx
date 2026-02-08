@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, it, beforeEach, afterEach, expect, vi } from 'vitest';
-import { MarkdownPage } from './MarkdownPage';
+import { MarkdownPage } from '@/pages/MarkdownPage';
 
 describe('MarkdownPage', () => {
   beforeEach(() => {
