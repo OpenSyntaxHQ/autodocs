@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
-import { TypeView } from './TypeView';
-import type { DocEntry } from '../../store';
+import { TypeView } from '@/components/Documentation/TypeView';
+import type { DocEntry } from '@/store';
 
 const baseEntry: DocEntry = {
   id: 'example',

@@ -1,7 +1,7 @@
 import { render, screen, act } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, it, afterEach, expect } from 'vitest';
-import { SectionPage } from './SectionPage';
+import { SectionPage } from '@/pages/SectionPage';
 import { useStore } from '@/store';
 
 describe('SectionPage', () => {

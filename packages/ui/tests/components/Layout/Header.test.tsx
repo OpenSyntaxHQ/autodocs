@@ -1,8 +1,8 @@
 import { render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, beforeEach, expect } from 'vitest';
-import { Header } from './Header';
-import { useStore } from '../../store';
+import { Header } from '@/components/Layout/Header';
+import { useStore } from '@/store';
 
 describe('Header', () => {
   beforeEach(() => {

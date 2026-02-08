@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { Sidebar } from './Sidebar';
-import { DocEntry } from '../../store';
-import { renderWithStore } from '../../test/helpers';
+import { Sidebar } from '@/components/Layout/Sidebar';
+import { DocEntry } from '@/store';
+import { renderWithStore } from '../../helpers';
 
 const docs: DocEntry[] = [
   {

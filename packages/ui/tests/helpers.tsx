@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, RenderResult, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { useStore } from '../store';
+import { useStore } from '@/store';
 
 type StoreState = ReturnType<typeof useStore.getState>;
 

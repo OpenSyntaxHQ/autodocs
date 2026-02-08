@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, render, waitFor } from '@testing-library/react';
-import { CodeBlock } from './CodeBlock';
+import { CodeBlock } from '@/components/Documentation/CodeBlock';
 
 let writeTextMock: ReturnType<typeof vi.fn>;
 
@@ -35,5 +35,17 @@ describe('CodeBlock', () => {
       },
       { timeout: 2000 }
     );
+  });
+
+  it('keeps copy label when clipboard fails', async () => {
+    writeTextMock.mockRejectedValueOnce(new Error('fail'));
+    const { getByRole } = render(<CodeBlock code="const x = 1" />);
+
+    const button = getByRole('button', { name: 'Copy' });
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      expect(button).toHaveTextContent('Copy');
+    });
   });
 });
