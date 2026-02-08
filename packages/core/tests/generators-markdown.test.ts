@@ -45,4 +45,101 @@ describe('Markdown Generator', () => {
     expect(entry).toContain('## Examples');
     expect(entry).toContain('```typescript');
   });
+
+  it('renders enums, members, type params, and parameter docs', async () => {
+    const tempDir = await createTempDir('autodocs-md-branches-');
+
+    const docs: DocEntry[] = [
+      {
+        id: 'Complex',
+        name: 'Complex',
+        kind: 'function',
+        fileName: 'src/complex.ts',
+        position: { line: 5, column: 0 },
+        signature: 'function Complex<T>(input: T): T',
+        typeParameters: [
+          {
+            name: 'T',
+            constraint: 'string',
+            default: 'string',
+          },
+        ],
+        parameters: [
+          {
+            name: 'input',
+            type: 'T',
+            optional: false,
+            rest: false,
+          },
+        ],
+        returnType: { text: 'T', kind: 'type' },
+        documentation: {
+          summary: 'Summary line 1\nSummary line 2',
+          deprecated: 'Use ComplexV2',
+          params: [{ name: 'input', text: 'Input docs' }],
+          returns: 'Return docs',
+          examples: [
+            {
+              language: 'ts',
+              code: '```ts\nComplex("ok")\n```',
+            },
+          ],
+          tags: [],
+        },
+      },
+      {
+        id: 'Widget',
+        name: 'Widget',
+        kind: 'interface',
+        fileName: 'src/widget.ts',
+        position: { line: 1, column: 0 },
+        signature: 'interface Widget',
+        members: [
+          {
+            name: 'name',
+            type: 'string',
+            optional: true,
+            readonly: true,
+            documentation: 'Widget name',
+          },
+        ],
+      },
+      {
+        id: 'Status',
+        name: 'Status',
+        kind: 'enum',
+        fileName: 'src/status.ts',
+        position: { line: 1, column: 0 },
+        signature: 'enum Status',
+        members: [
+          {
+            name: 'Ready',
+            type: 'enum',
+            optional: false,
+            readonly: true,
+            value: 'ready',
+            documentation: 'Ready state',
+          },
+        ],
+      },
+    ];
+
+    await generateMarkdown(docs, tempDir);
+
+    const complex = await fs.readFile(path.join(tempDir, 'api', 'function', 'Complex.md'), 'utf-8');
+    expect(complex).toContain('## Type Parameters');
+    expect(complex).toContain('Input docs');
+    expect(complex).toContain('Return docs');
+    expect(complex).toContain('## Examples');
+
+    const widget = await fs.readFile(path.join(tempDir, 'api', 'interface', 'Widget.md'), 'utf-8');
+    expect(widget).toContain('## Properties');
+    expect(widget).toContain('Widget name');
+
+    const status = await fs.readFile(path.join(tempDir, 'api', 'enum', 'Status.md'), 'utf-8');
+    expect(status).toContain('## Members');
+
+    const index = await fs.readFile(path.join(tempDir, 'API_INDEX.md'), 'utf-8');
+    expect(index).toContain('Summary line 1');
+  });
 });
