@@ -10,9 +10,8 @@ module.exports = {
     '^.+\\.[tj]sx?$': [
       'ts-jest',
       {
-        tsconfig: {
-          allowJs: true,
-        },
+        tsconfig: '<rootDir>/tsconfig.test.json',
+        allowJs: true,
       },
     ],
   },

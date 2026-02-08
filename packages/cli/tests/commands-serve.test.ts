@@ -7,8 +7,22 @@ import { createTempDir } from './helpers/temp';
 const listenMock = jest.fn((_port: number, _host: string, cb: () => void) => {
   cb();
 });
+type ExpressHandler = (
+  _req: unknown,
+  res: {
+    sendFile: (file: string, cb: (err?: unknown) => void) => void;
+    status: (code: number) => { send: (body: string) => void };
+    send: (body: string) => void;
+  }
+) => void;
+type ExpressResponse = {
+  sendFile: (file: string, cb: (err?: unknown) => void) => void;
+  status: (code: number) => { send: (body: string) => void };
+  send: (body: string) => void;
+};
+
 const useMock = jest.fn();
-const getMock = jest.fn();
+const getMock = jest.fn<unknown, [string, ExpressHandler]>();
 
 const expressMock = Object.assign(
   () => ({
@@ -26,14 +40,23 @@ jest.mock('express', () => ({
   default: expressMock,
 }));
 
+jest.mock('open', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+import open from 'open';
+
 describe('serve command', () => {
   const originalCwd = process.cwd();
+  const openMock = open as jest.Mock;
 
   afterEach(() => {
     process.chdir(originalCwd);
     listenMock.mockClear();
     useMock.mockClear();
     getMock.mockClear();
+    openMock.mockClear();
   });
 
   it('exits when docs directory is missing', async () => {
@@ -77,5 +100,62 @@ describe('serve command', () => {
     ]);
 
     expect(listenMock).toHaveBeenCalledWith(4567, '127.0.0.1', expect.any(Function));
+  });
+
+  it('opens browser when --open is provided', async () => {
+    const tempDir = await createTempDir('autodocs-serve-');
+    const docsDir = path.join(tempDir, 'docs-dist');
+    await fs.mkdir(docsDir, { recursive: true });
+    await fs.writeFile(path.join(docsDir, 'index.html'), '<html></html>', 'utf-8');
+    process.chdir(tempDir);
+
+    const program = new Command();
+    registerServe(program);
+
+    await program.parseAsync([
+      'node',
+      'cli',
+      'serve',
+      '--docs',
+      docsDir,
+      '--port',
+      '4567',
+      '--host',
+      '127.0.0.1',
+      '--open',
+    ]);
+
+    expect(openMock).toHaveBeenCalledWith('http://127.0.0.1:4567');
+  });
+
+  it('returns 404 when index.html is missing', async () => {
+    const tempDir = await createTempDir('autodocs-serve-');
+    const docsDir = path.join(tempDir, 'docs-dist');
+    await fs.mkdir(docsDir, { recursive: true });
+    process.chdir(tempDir);
+
+    const program = new Command();
+    registerServe(program);
+
+    await program.parseAsync(['node', 'cli', 'serve', '--docs', docsDir]);
+
+    expect(getMock).toHaveBeenCalled();
+    const handler = getMock.mock.calls[0]?.[1];
+    if (!handler) return;
+
+    const res: ExpressResponse = {
+      sendFile: jest.fn((_file: string, cb: (err?: unknown) => void) => {
+        cb(new Error('missing'));
+      }),
+      status: jest.fn(function status(this: ExpressResponse) {
+        return this;
+      }),
+      send: jest.fn(),
+    };
+
+    handler({}, res);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.send).toHaveBeenCalledWith('Documentation not found. Run: autodocs build');
   });
 });

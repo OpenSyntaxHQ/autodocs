@@ -36,6 +36,7 @@ describe('config loader', () => {
     const config = resolveConfigPaths(
       {
         include: ['src/**/*.ts'],
+        exclude: ['dist'],
         output: { dir: './docs-dist', format: 'json' },
         theme: { name: 'default', logo: './assets/logo.svg' },
       } as import('../src/config').AutodocsConfig,
@@ -44,6 +45,26 @@ describe('config loader', () => {
 
     expect(config.output.dir).toBe(path.join(tempDir, 'docs-dist'));
     expect(config.include[0]).toBe(path.join(tempDir, 'src/**/*.ts'));
+    expect(config.exclude?.[0]).toBe(path.join(tempDir, 'dist'));
     expect(config.theme?.logo).toBe(path.join(tempDir, 'assets/logo.svg'));
+  });
+
+  it('keeps absolute and remote asset paths', async () => {
+    const tempDir = await createTempDir();
+    const config = resolveConfigPaths(
+      {
+        include: ['src/**/*.ts'],
+        output: { dir: './docs-dist', format: 'json' },
+        theme: {
+          name: 'default',
+          logo: 'https://example.com/logo.svg',
+          favicon: '/var/tmp/icon.ico',
+        },
+      } as import('../src/config').AutodocsConfig,
+      tempDir
+    );
+
+    expect(config.theme?.logo).toBe('https://example.com/logo.svg');
+    expect(config.theme?.favicon).toBe('/var/tmp/icon.ico');
   });
 });

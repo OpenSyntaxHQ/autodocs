@@ -1,5 +1,8 @@
-import { afterAll, afterEach, jest } from '@jest/globals';
+import { afterAll, afterEach, beforeEach, jest } from '@jest/globals';
 import { cleanupTempDirs } from './helpers/temp';
+
+const originalConsoleError = console.error;
+const originalConsoleWarn = console.warn;
 
 jest.mock('ora', () => ({
   __esModule: true,
@@ -27,8 +30,15 @@ jest.mock('chokidar', () => ({
 
 afterEach(async () => {
   await cleanupTempDirs();
+  console.error = originalConsoleError;
+  console.warn = originalConsoleWarn;
 });
 
 afterAll(async () => {
   await cleanupTempDirs();
+});
+
+beforeEach(() => {
+  console.error = jest.fn();
+  console.warn = jest.fn();
 });
