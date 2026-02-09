@@ -93,4 +93,59 @@ describe('Examples plugin', () => {
     const plugin = examplesPlugin({ validate: true });
     await expect(plugin.afterExtract?.(docs)).resolves.toBeTruthy();
   });
+
+  it('does not mutate entry identity fields or add entries', async () => {
+    const docs: DocEntry[] = [
+      {
+        id: 'abc12345',
+        name: 'SomeType',
+        kind: 'type',
+        fileName: 'src/types.ts',
+        module: 'src/types',
+        position: { line: 10, column: 0 },
+        signature: 'type SomeType = { value: string }',
+        documentation: {
+          summary: 'A sample type',
+          tags: [],
+          examples: [{ code: 'const x: SomeType = { value: "ok" };', language: 'ts' }],
+        },
+      },
+    ];
+
+    const plugin = examplesPlugin({ validate: false });
+    const before = { id: docs[0].id, kind: docs[0].kind, name: docs[0].name };
+    const result = (await plugin.afterExtract?.(docs)) || docs;
+
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe(before.id);
+    expect(result[0].kind).toBe(before.kind);
+    expect(result[0].name).toBe(before.name);
+  });
+
+  it('skips output generation when entries contain no examples', async () => {
+    const tempDir = await createTempDir('autodocs-ex-no-output-');
+    const outputDir = path.join(tempDir, 'docs');
+
+    const docs: DocEntry[] = [
+      {
+        id: 'NoExamples',
+        name: 'NoExamples',
+        kind: 'interface',
+        fileName: 'src/no-examples.ts',
+        module: 'src/no-examples',
+        position: { line: 1, column: 0 },
+        signature: 'interface NoExamples { value: string }',
+        documentation: {
+          summary: 'No examples here',
+          tags: [],
+        },
+      },
+    ];
+
+    const plugin = examplesPlugin({ outputDir: 'examples' });
+    await plugin.afterExtract?.(docs);
+    await plugin.afterGenerate?.(outputDir);
+
+    await expect(fs.access(path.join(outputDir, 'examples', 'examples.json'))).rejects.toThrow();
+  });
 });
