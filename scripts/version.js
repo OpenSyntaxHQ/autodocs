@@ -23,6 +23,13 @@ const packageFiles = [
   'packages/plugins/examples/package.json',
 ];
 
+const dependencyFields = [
+  'dependencies',
+  'devDependencies',
+  'peerDependencies',
+  'optionalDependencies',
+];
+
 function readPackageJson(filePath) {
   if (!fs.existsSync(filePath)) {
     throw new Error(`Package file not found: ${filePath}`);
@@ -37,10 +44,36 @@ function readPackageJson(filePath) {
 }
 
 try {
-  for (const pkgPath of packageFiles) {
+  const packageEntries = packageFiles.map((pkgPath) => {
     const absolutePath = path.resolve(__dirname, '..', pkgPath);
     const pkg = readPackageJson(absolutePath);
+    return { pkgPath, absolutePath, pkg };
+  });
+
+  const internalPackageNames = new Set(
+    packageEntries
+      .map((entry) => entry.pkg.name)
+      .filter((name) => typeof name === 'string' && name.startsWith('@opensyntaxhq/'))
+  );
+
+  for (const entry of packageEntries) {
+    const { pkgPath, absolutePath, pkg } = entry;
     pkg.version = version;
+
+    for (const field of dependencyFields) {
+      const deps = pkg[field];
+      if (!deps || typeof deps !== 'object') {
+        continue;
+      }
+
+      for (const depName of Object.keys(deps)) {
+        if (!internalPackageNames.has(depName)) {
+          continue;
+        }
+        deps[depName] = `^${version}`;
+      }
+    }
+
     fs.writeFileSync(absolutePath, JSON.stringify(pkg, null, 2) + '\n');
     console.log(`Updated ${pkgPath} to ${version}`);
   }
