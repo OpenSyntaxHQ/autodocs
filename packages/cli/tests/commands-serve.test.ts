@@ -128,6 +128,39 @@ describe('serve command', () => {
     expect(openMock).toHaveBeenCalledWith('http://127.0.0.1:4567');
   });
 
+  it('warns when opening browser fails', async () => {
+    const tempDir = await createTempDir('autodocs-serve-');
+    const docsDir = path.join(tempDir, 'docs-dist');
+    await fs.mkdir(docsDir, { recursive: true });
+    await fs.writeFile(path.join(docsDir, 'index.html'), '<html></html>', 'utf-8');
+    process.chdir(tempDir);
+
+    openMock.mockRejectedValueOnce(new Error('cannot open browser'));
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    const program = new Command();
+    registerServe(program);
+
+    await program.parseAsync([
+      'node',
+      'cli',
+      'serve',
+      '--docs',
+      docsDir,
+      '--port',
+      '4567',
+      '--host',
+      '127.0.0.1',
+      '--open',
+    ]);
+    await Promise.resolve();
+
+    expect(warnSpy).toHaveBeenCalled();
+    expect(String(warnSpy.mock.calls[0]?.[0] ?? '')).toContain('Could not open browser:');
+
+    warnSpy.mockRestore();
+  });
+
   it('returns 404 when index.html is missing', async () => {
     const tempDir = await createTempDir('autodocs-serve-');
     const docsDir = path.join(tempDir, 'docs-dist');

@@ -1,6 +1,6 @@
 {
   "name": "autodocs-monorepo",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "license": "Apache-2.0",
   "packageManager": "npm@11.9.0",
@@ -19,9 +19,11 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
+    "verify:cli:pack": "node scripts/verify-cli-pack.js",
+    "test:smoke:cli-tarball": "node scripts/smoke-cli-tarball.js",
     "serve:test": "node scripts/serve-test-docs.js",
     "type-check": "turbo run type-check",
-    "docs:build": "npm run build && node packages/cli/dist/index.js build",
+    "docs:build": "npm run build && npm -w packages/cli run prepare:ui-dist && node packages/cli/dist/index.js build",
     "version": "node scripts/version.js",
     "clean": "turbo run clean && rm -rf node_modules .turbo",
     "prepare": "husky"

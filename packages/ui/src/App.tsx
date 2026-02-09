@@ -5,16 +5,17 @@ import { GuidePage } from './pages/GuidePage';
 import { MarkdownPage } from './pages/MarkdownPage';
 import { SectionPage } from './pages/SectionPage';
 import { TypePage } from './pages/TypePage';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { useStore } from './store';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { applyTheme, loadConfig, loadDocs } from './lib/loaders';
 
 export function App() {
-  const docs = useStore((state) => state.docs);
   const setDocs = useStore((state) => state.setDocs);
   const theme = useStore((state) => state.theme);
   const setTheme = useStore((state) => state.setTheme);
   const setConfig = useStore((state) => state.setConfig);
+  const didInitializeDocs = useRef(false);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,8 +48,11 @@ export function App() {
           }
         }
 
-        if (docs.length === 0) {
-          setDocs(docsData.entries);
+        if (!didInitializeDocs.current) {
+          if (useStore.getState().docs.length === 0) {
+            setDocs(docsData.entries);
+          }
+          didInitializeDocs.current = true;
         }
       } catch (err) {
         if (active) {
@@ -66,7 +70,7 @@ export function App() {
     return () => {
       active = false;
     };
-  }, [docs.length, setDocs, setConfig, setTheme]);
+  }, [setDocs, setConfig, setTheme]);
 
   if (loading) {
     return (
@@ -88,16 +92,18 @@ export function App() {
   }
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route element={<AppShell />}>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/docs/*" element={<MarkdownPage />} />
-          <Route path="/guide/:name" element={<GuidePage />} />
-          <Route path="/section/:slug" element={<SectionPage />} />
-          <Route path="/:kind/:id/:slug?" element={<TypePage />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/docs/*" element={<MarkdownPage />} />
+            <Route path="/guide/:id/:slug?" element={<GuidePage />} />
+            <Route path="/section/:slug" element={<SectionPage />} />
+            <Route path="/:kind/:id/:slug?" element={<TypePage />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }

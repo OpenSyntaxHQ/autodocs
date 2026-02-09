@@ -45,7 +45,12 @@ Some content.`,
 
     const guide = docs[0];
     expect(guide.kind).toBe('guide');
+    expect(guide.id).toMatch(/^[0-9a-f]{8}$/);
+    expect(guide.id).not.toContain(':');
+    expect(guide.id).not.toContain('/');
     expect(guide.name).toBe('Getting Started');
+    expect(guide.fileName).toBe('guide.md');
+    expect(guide.source?.file).toBe('guide.md');
     expect(guide.documentation?.summary).toBe('Intro guide');
     const metadata = guide.metadata as { markdown?: string; html?: string };
     expect(metadata.markdown).toContain('Some content');

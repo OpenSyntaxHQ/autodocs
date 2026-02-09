@@ -10,14 +10,16 @@ if (!('ResizeObserver' in globalThis)) {
   globalThis.ResizeObserver = ResizeObserver;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-if (!window.HTMLElement.prototype.scrollIntoView) {
-  window.HTMLElement.prototype.scrollIntoView = () => undefined;
+const htmlElementPrototype = window.HTMLElement.prototype as Partial<HTMLElement>;
+if (typeof htmlElementPrototype.scrollIntoView !== 'function') {
+  htmlElementPrototype.scrollIntoView = () => undefined;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-if (!window.matchMedia) {
-  window.matchMedia = () => ({
+const windowWithOptionalMatchMedia = window as Window & {
+  matchMedia?: Window['matchMedia'];
+};
+if (typeof windowWithOptionalMatchMedia.matchMedia !== 'function') {
+  windowWithOptionalMatchMedia.matchMedia = () => ({
     matches: false,
     media: '',
     onchange: null,

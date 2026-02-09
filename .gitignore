@@ -55,3 +55,4 @@ Thumbs.db
 # Autodocs
 docs-dist
 .autodocs-cache
+packages/cli/ui-dist

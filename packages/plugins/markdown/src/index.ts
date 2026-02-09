@@ -1,5 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
+import crypto from 'crypto';
 import matter from 'gray-matter';
 import { marked } from 'marked';
 import { glob } from 'glob';
@@ -13,9 +14,19 @@ export interface MarkdownPluginOptions {
 
 interface MarkdownFile {
   path: string;
+  relativePath: string;
   frontMatter: Record<string, unknown>;
   markdown: string;
   html: string;
+}
+
+function normalizePath(input: string): string {
+  return input.replace(/\\/g, '/');
+}
+
+function generateGuideId(relativePath: string): string {
+  const content = `guide|${normalizePath(relativePath)}`;
+  return crypto.createHash('md5').update(content).digest('hex').slice(0, 8);
 }
 
 export default function markdownPlugin(options: MarkdownPluginOptions): Plugin {
@@ -37,6 +48,7 @@ export default function markdownPlugin(options: MarkdownPluginOptions): Plugin {
 
       for (const file of foundFiles) {
         const content = await fs.readFile(file, 'utf-8');
+        const relativePath = normalizePath(path.relative(options.sourceDir, file));
         let frontMatter: Record<string, unknown> = {};
         let markdown = content;
 
@@ -51,6 +63,7 @@ export default function markdownPlugin(options: MarkdownPluginOptions): Plugin {
 
         files.push({
           path: file,
+          relativePath,
           frontMatter,
           markdown,
           html,
@@ -64,17 +77,19 @@ export default function markdownPlugin(options: MarkdownPluginOptions): Plugin {
     afterExtract(docs: DocEntry[]) {
       const guideDocs: DocEntry[] = files.map((file) => {
         const fileName = path.basename(file.path, path.extname(file.path));
+        const modulePath = file.relativePath.replace(/\.[^/.]+$/, '');
         const title =
           typeof file.frontMatter.title === 'string' ? file.frontMatter.title : fileName;
         const description =
           typeof file.frontMatter.description === 'string' ? file.frontMatter.description : '';
 
         return {
-          id: `guide:${file.path}`,
+          id: generateGuideId(file.relativePath),
           name: title,
           kind: 'guide',
-          fileName: file.path,
-          source: { file: file.path, line: 1, column: 0 },
+          fileName: file.relativePath,
+          module: modulePath,
+          source: { file: file.relativePath, line: 1, column: 0 },
           position: { line: 1, column: 0 },
           signature: '',
           documentation: {

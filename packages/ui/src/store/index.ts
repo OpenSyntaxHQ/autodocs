@@ -1,74 +1,16 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type {
+  DocEntry as CoreDocEntry,
+  DocKind as CoreDocKind,
+  DocComment as CoreDocComment,
+  DocParam as CoreDocParam,
+} from '@autodocs-core/extractor/types';
 
-export type DocKind = 'interface' | 'type' | 'class' | 'function' | 'enum' | 'variable' | 'guide';
-
-export interface DocParam {
-  name: string;
-  type?: string;
-  text: string;
-}
-
-export interface DocComment {
-  summary: string;
-  description?: string;
-  tags: Array<{ name: string; text: string; type?: string; paramName?: string }>;
-  examples?: Array<{ code: string; language: string }>;
-  params?: DocParam[];
-  returns?: string;
-  deprecated?: string;
-}
-
-export interface DocEntry {
-  id: string;
-  name: string;
-  kind: DocKind;
-  fileName: string;
-  module?: string;
-  source?: {
-    file: string;
-    line: number;
-    column: number;
-  };
-  position: {
-    line: number;
-    column: number;
-  };
-  signature: string;
-  documentation?: DocComment;
-  metadata?: Record<string, unknown>;
-  typeParameters?: Array<{
-    name: string;
-    constraint?: string;
-    default?: string;
-  }>;
-  members?: Array<{
-    name: string;
-    type: string;
-    optional: boolean;
-    readonly: boolean;
-    documentation?: string;
-    kind?: 'property' | 'method' | 'enum';
-    value?: string;
-  }>;
-  parameters?: Array<{
-    name: string;
-    type: string;
-    optional: boolean;
-    defaultValue?: string;
-    rest: boolean;
-    documentation?: string;
-  }>;
-  returnType?: {
-    text: string;
-    kind: string;
-  };
-  heritage?: Array<{
-    id: string;
-    name: string;
-    kind: 'extends' | 'implements';
-  }>;
-}
+export type DocKind = CoreDocKind;
+export type DocParam = CoreDocParam;
+export type DocComment = CoreDocComment;
+export type DocEntry = CoreDocEntry;
 
 export interface UiConfig {
   version?: string;

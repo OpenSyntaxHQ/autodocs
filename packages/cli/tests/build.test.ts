@@ -3,18 +3,6 @@ import path from 'path';
 import type { DocEntry } from '@opensyntaxhq/autodocs-core';
 import { createTempDir } from './helpers/temp';
 
-jest.mock('child_process', () => ({
-  exec: jest.fn(
-    (
-      _command: string,
-      _options: unknown,
-      callback: (error: Error | null, stdout: string, stderr: string) => void
-    ) => {
-      callback(null, '', '');
-    }
-  ),
-}));
-
 import { buildReactUI } from '../src/commands/build';
 
 import type { Ora } from 'ora';

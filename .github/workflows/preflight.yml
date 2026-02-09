@@ -40,6 +40,10 @@ jobs:
           npm -w packages/plugins/markdown pack
           npm -w packages/plugins/examples pack
           rm -f opensyntaxhq-*.tgz
+      - name: Verify CLI package includes bundled UI
+        run: npm run verify:cli:pack
+      - name: Smoke test packed CLI artifact
+        run: npm run test:smoke:cli-tarball
       - name: Publish dry-run (requires NPM_TOKEN)
         if: ${{ env.NPM_TOKEN != '' }}
         env:

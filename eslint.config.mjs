@@ -2,10 +2,13 @@ import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import globals from 'globals';
 
+const disableTypeCheckedForJs = tseslint.configs.disableTypeChecked;
+
 export default tseslint.config(
   {
     ignores: [
       '**/dist/**',
+      '**/ui-dist/**',
       '**/node_modules/**',
       '**/.turbo/**',
       '**/coverage/**',
@@ -43,7 +46,18 @@ export default tseslint.config(
   },
   {
     files: ['**/*.{js,mjs,cjs}'],
-    ...tseslint.configs.disableTypeChecked,
+    ...disableTypeCheckedForJs,
+    languageOptions: {
+      ...(disableTypeCheckedForJs.languageOptions ?? {}),
+      globals: {
+        ...globals.node,
+        ...globals.es2021,
+      },
+    },
+    rules: {
+      ...(disableTypeCheckedForJs.rules ?? {}),
+      '@typescript-eslint/no-require-imports': 'off',
+    },
   },
   {
     files: ['**/tests/**/*.ts', '**/*.test.ts', '**/*.spec.ts'],

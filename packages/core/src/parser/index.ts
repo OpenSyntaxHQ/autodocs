@@ -86,8 +86,7 @@ export function createProgram(entryFiles: string[], options: ParserOptions = {})
 function findConfigFile(startPath: string): string | undefined {
   let currentDir = path.dirname(path.resolve(startPath));
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  while (true) {
+  for (;;) {
     const configPath = path.join(currentDir, 'tsconfig.json');
 
     if (fs.existsSync(configPath)) {

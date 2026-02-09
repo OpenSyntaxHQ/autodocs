@@ -97,6 +97,34 @@ describe('applyTheme', () => {
     expect(document.documentElement.style.cssText).toBe('');
     expect(document.querySelector('link[rel="icon"]')).toBeNull();
   });
+
+  it('ignores unsafe theme values', () => {
+    applyTheme({
+      theme: {
+        primaryColor: 'url(javascript:alert(1))',
+        secondaryColor: 'expression(alert(1))',
+        fonts: { sans: 'Inter; color: red' },
+        favicon: 'javascript:alert(1)',
+      },
+    });
+
+    expect(document.documentElement.style.getPropertyValue('--primary')).toBe('');
+    expect(document.documentElement.style.getPropertyValue('--secondary')).toBe('');
+    expect(document.documentElement.style.getPropertyValue('--font-sans')).toBe('');
+    expect(document.querySelector('link[rel="icon"]')).toBeNull();
+  });
+
+  it('accepts safe favicon data URLs', () => {
+    applyTheme({
+      theme: {
+        favicon: 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=',
+      },
+    });
+
+    const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    expect(link).not.toBeNull();
+    expect(link?.href).toBe('data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=');
+  });
 });
 
 describe('loadConfig', () => {

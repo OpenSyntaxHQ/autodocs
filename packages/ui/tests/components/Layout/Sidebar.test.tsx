@@ -20,6 +20,15 @@ const docs: DocEntry[] = [
     position: { line: 1, column: 0 },
     signature: 'class Beta {}',
   },
+  {
+    id: 'a1b2c3d4',
+    name: 'README',
+    kind: 'guide',
+    fileName: 'docs/README.md',
+    module: 'docs/README',
+    position: { line: 1, column: 0 },
+    signature: 'markdown README',
+  },
 ];
 
 describe('Sidebar', () => {
@@ -58,5 +67,15 @@ describe('Sidebar', () => {
 
     expect(queryByText(/functions/i)).not.toBeInTheDocument();
     expect(queryByText(/classes/i)).not.toBeInTheDocument();
+  });
+
+  it('uses clean guide IDs in links', () => {
+    const { getByRole } = renderWithStore(<Sidebar />, {
+      initialState: { docs },
+      route: '/',
+    });
+
+    const link = getByRole('link', { name: 'README' });
+    expect(link.getAttribute('href')).toBe('/guide/a1b2c3d4/readme');
   });
 });

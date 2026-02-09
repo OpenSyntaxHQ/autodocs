@@ -1,5 +1,65 @@
 import { DocEntry, UiConfig } from '../store';
 
+const HEX_COLOR_PATTERN = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+const FUNCTION_COLOR_PATTERN = /^(?:rgb|hsl)a?\([^()]+\)$/i;
+const CSS_VAR_PATTERN = /^var\(--[a-zA-Z0-9-_]+\)$/;
+const SAFE_FONT_PATTERN = /^[a-zA-Z0-9\s'",-]+$/;
+const SAFE_DATA_IMAGE_PATTERN = /^data:image\/[a-zA-Z0-9.+-]+;base64,[a-zA-Z0-9+/=]+$/;
+
+function sanitizeColor(value?: string): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  if (HEX_COLOR_PATTERN.test(trimmed) || FUNCTION_COLOR_PATTERN.test(trimmed)) {
+    return trimmed;
+  }
+  if (CSS_VAR_PATTERN.test(trimmed)) {
+    return trimmed;
+  }
+  return undefined;
+}
+
+function sanitizeFont(value?: string): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  return SAFE_FONT_PATTERN.test(trimmed) ? trimmed : undefined;
+}
+
+function sanitizeFavicon(value?: string): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  if (SAFE_DATA_IMAGE_PATTERN.test(trimmed)) {
+    return trimmed;
+  }
+
+  try {
+    const resolved = new URL(trimmed, window.location.origin);
+    if (resolved.protocol === 'http:' || resolved.protocol === 'https:') {
+      return trimmed;
+    }
+  } catch {
+    return undefined;
+  }
+
+  return undefined;
+}
+
 export interface DocsPayload {
   meta?: {
     version?: string;
@@ -64,38 +124,44 @@ export function applyTheme(config: UiConfig | null): void {
 
   const root = document.documentElement;
   const theme = config.theme;
+  const primaryColor = sanitizeColor(theme.primaryColor);
+  const secondaryColor = sanitizeColor(theme.secondaryColor);
+  const sansFont = sanitizeFont(theme.fonts?.sans);
+  const monoFont = sanitizeFont(theme.fonts?.mono);
+  const displayFont = sanitizeFont(theme.fonts?.display);
+  const favicon = sanitizeFavicon(theme.favicon);
 
-  if (theme.primaryColor) {
-    root.style.setProperty('--primary', theme.primaryColor);
-    root.style.setProperty('--ring', theme.primaryColor);
-    root.style.setProperty('--sidebar-primary', theme.primaryColor);
-    root.style.setProperty('--color-primary', theme.primaryColor);
+  if (primaryColor) {
+    root.style.setProperty('--primary', primaryColor);
+    root.style.setProperty('--ring', primaryColor);
+    root.style.setProperty('--sidebar-primary', primaryColor);
+    root.style.setProperty('--color-primary', primaryColor);
   }
 
-  if (theme.secondaryColor) {
-    root.style.setProperty('--secondary', theme.secondaryColor);
-    root.style.setProperty('--color-secondary', theme.secondaryColor);
+  if (secondaryColor) {
+    root.style.setProperty('--secondary', secondaryColor);
+    root.style.setProperty('--color-secondary', secondaryColor);
   }
 
-  if (theme.fonts?.sans) {
-    root.style.setProperty('--font-sans', theme.fonts.sans);
+  if (sansFont) {
+    root.style.setProperty('--font-sans', sansFont);
   }
 
-  if (theme.fonts?.mono) {
-    root.style.setProperty('--font-mono', theme.fonts.mono);
+  if (monoFont) {
+    root.style.setProperty('--font-mono', monoFont);
   }
 
-  if (theme.fonts?.display) {
-    root.style.setProperty('--font-display', theme.fonts.display);
+  if (displayFont) {
+    root.style.setProperty('--font-display', displayFont);
   }
 
-  if (theme.favicon) {
+  if (favicon) {
     let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
     if (!link) {
       link = document.createElement('link');
       link.rel = 'icon';
       document.head.appendChild(link);
     }
-    link.href = theme.favicon;
+    link.href = favicon;
   }
 }

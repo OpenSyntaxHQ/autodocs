@@ -8,6 +8,20 @@ Engineer-first documentation generator for TypeScript.
 npm install -D @opensyntaxhq/autodocs
 ```
 
+Run via local binary:
+
+```bash
+npx autodocs build
+# or
+npm exec autodocs build
+```
+
+If you want `autodocs` available globally in your shell:
+
+```bash
+npm install -g @opensyntaxhq/autodocs
+```
+
 ## Quick start
 
 ```bash
@@ -45,3 +59,5 @@ export default defineConfig({
 ## Notes
 
 Set `SITE_URL` (env or config) to generate `sitemap.xml` and `robots.txt`.
+
+From `2.0.1+`, the React UI assets are bundled with the CLI package, so `autodocs build` static output does not require installing a separate UI package.
