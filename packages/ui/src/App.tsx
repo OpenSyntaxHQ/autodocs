@@ -98,7 +98,7 @@ export function App() {
           <Route element={<AppShell />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/docs/*" element={<MarkdownPage />} />
-            <Route path="/guide/:name" element={<GuidePage />} />
+            <Route path="/guide/:id/:slug?" element={<GuidePage />} />
             <Route path="/section/:slug" element={<SectionPage />} />
             <Route path="/:kind/:id/:slug?" element={<TypePage />} />
           </Route>

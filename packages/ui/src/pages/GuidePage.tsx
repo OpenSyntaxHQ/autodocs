@@ -11,12 +11,13 @@ interface GuideMetadata {
 }
 
 export function GuidePage() {
-  const { name } = useParams<{ name: string }>();
+  const { id } = useParams<{ id: string; slug?: string }>();
   const docs = useStore((state) => state.docs);
+  const decodedId = id ? decodeURIComponent(id) : id;
 
   const entry = useMemo(
-    () => docs.find((doc) => doc.kind === 'guide' && doc.name === name),
-    [docs, name]
+    () => docs.find((doc) => doc.kind === 'guide' && doc.id === decodedId),
+    [docs, decodedId]
   );
 
   if (!entry) {
