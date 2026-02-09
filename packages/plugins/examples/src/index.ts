@@ -119,8 +119,7 @@ async function validateExample(example: CodeExample, entry: DocEntry): Promise<v
     }
   } finally {
     try {
-      await fs.unlink(tempFile);
-      await fs.rmdir(tempDir);
+      await fs.rm(tempDir, { recursive: true, force: true });
     } catch {
       // ignore cleanup errors
     }

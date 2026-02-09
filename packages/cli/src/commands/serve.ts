@@ -53,8 +53,9 @@ export function registerServe(program: Command): void {
           console.log(chalk.gray('\nPress Ctrl+C to stop'));
 
           if (open) {
-            // eslint-disable-next-line @typescript-eslint/no-floating-promises
-            open.default(url);
+            void Promise.resolve(open.default(url)).catch((openError: unknown) => {
+              console.warn(chalk.yellow('Could not open browser:'), openError);
+            });
           }
         });
       } catch (error) {

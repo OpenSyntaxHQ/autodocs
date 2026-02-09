@@ -7,6 +7,7 @@ import { glob } from 'glob';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import fsPromises from 'fs/promises';
+import type { CompilerOptions, Diagnostic } from 'typescript';
 import { loadConfig, resolveConfigPaths } from '../config';
 import { computeConfigHash } from '../utils/configHash';
 import {
@@ -22,6 +23,10 @@ import {
 } from '@opensyntaxhq/autodocs-core';
 
 const execAsync = promisify(exec);
+
+function toCompilerOptions(options?: Record<string, unknown>): CompilerOptions | undefined {
+  return options ? (options as unknown as CompilerOptions) : undefined;
+}
 
 interface BuildOptions {
   config?: string;
@@ -403,7 +408,7 @@ export function registerBuild(program: Command): void {
 
         let docs: DocEntry[] = [];
         let rootDir = process.cwd();
-        let diagnostics: Array<import('typescript').Diagnostic> = [];
+        let diagnostics: Diagnostic[] = [];
 
         spinner.start('Parsing TypeScript...');
 
@@ -417,8 +422,7 @@ export function registerBuild(program: Command): void {
             files,
             cache,
             tsconfig: config.tsconfig,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-            compilerOptions: config.compilerOptions as any,
+            compilerOptions: toCompilerOptions(config.compilerOptions),
             configHash,
             onProgram: async (program, parsedSourceFiles) => {
               await manager.runHook('afterParse', program);
@@ -438,8 +442,7 @@ export function registerBuild(program: Command): void {
         } else {
           const parseResult = createProgram(files, {
             configFile: config.tsconfig,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-            compilerOptions: config.compilerOptions as any,
+            compilerOptions: toCompilerOptions(config.compilerOptions),
             skipLibCheck: true,
           });
 

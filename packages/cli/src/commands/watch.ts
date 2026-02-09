@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { Command } from 'commander';
 import { glob } from 'glob';
+import type { CompilerOptions } from 'typescript';
 import { loadConfig, resolveConfigPaths } from '../config';
 import { FileWatcher } from '../utils/watcher';
 import { computeConfigHash } from '../utils/configHash';
@@ -20,6 +21,10 @@ interface WatchBuildOptions {
   config: import('../config').AutodocsConfig;
   configDir: string;
   mode: 'full' | 'docs-only';
+}
+
+function toCompilerOptions(options?: Record<string, unknown>): CompilerOptions | undefined {
+  return options ? (options as unknown as CompilerOptions) : undefined;
 }
 
 export async function runBuild({ config, configDir, mode }: WatchBuildOptions): Promise<void> {
@@ -64,8 +69,7 @@ export async function runBuild({ config, configDir, mode }: WatchBuildOptions): 
         files,
         cache,
         tsconfig: config.tsconfig,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-        compilerOptions: config.compilerOptions as any,
+        compilerOptions: toCompilerOptions(config.compilerOptions),
         configHash,
         onProgram: async (program, sourceFiles) => {
           await manager.runHook('afterParse', program);
@@ -84,8 +88,7 @@ export async function runBuild({ config, configDir, mode }: WatchBuildOptions): 
     } else {
       const parseResult = createProgram(files, {
         configFile: config.tsconfig,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-        compilerOptions: config.compilerOptions as any,
+        compilerOptions: toCompilerOptions(config.compilerOptions),
         skipLibCheck: true,
       });
 
