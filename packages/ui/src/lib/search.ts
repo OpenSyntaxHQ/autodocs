@@ -17,20 +17,20 @@ interface SearchDoc {
   summary: string;
 }
 
-export class SearchIndex {
-  private index: FlexSearchDocument<SearchDoc>;
-  private store: Map<string, SearchDoc> = new Map();
+function createSearchDocumentIndex(): FlexSearchDocument<SearchDoc> {
+  return new FlexSearchDocument({
+    document: {
+      id: 'id',
+      index: ['name', 'summary', 'kind'],
+    },
+    tokenize: 'forward',
+    resolution: 9,
+  });
+}
 
-  constructor() {
-    this.index = new FlexSearchDocument({
-      document: {
-        id: 'id',
-        index: ['name', 'summary', 'kind'],
-      },
-      tokenize: 'forward',
-      resolution: 9,
-    });
-  }
+export class SearchIndex {
+  private index: FlexSearchDocument<SearchDoc> = createSearchDocumentIndex();
+  private store: Map<string, SearchDoc> = new Map();
 
   addDocuments(docs: DocEntry[]): void {
     for (const doc of docs) {
@@ -76,14 +76,7 @@ export class SearchIndex {
   }
 
   clear(): void {
-    this.index = new FlexSearchDocument({
-      document: {
-        id: 'id',
-        index: ['name', 'summary', 'kind'],
-      },
-      tokenize: 'forward',
-      resolution: 9,
-    });
+    this.index = createSearchDocumentIndex();
     this.store.clear();
   }
 }
