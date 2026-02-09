@@ -6,15 +6,18 @@
     "autodocs": "dist/index.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "ui-dist"
   ],
   "scripts": {
     "build": "tsup src/index.ts src/index-exports.ts --format cjs --dts --no-splitting",
+    "prepare:ui-dist": "node scripts/prepare-ui-dist.js",
+    "prepack": "npm run prepare:ui-dist",
     "dev": "tsup src/index.ts --format cjs --watch",
     "lint": "eslint .",
     "test": "jest",
     "type-check": "tsc --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist ui-dist"
   },
   "exports": {
     ".": {

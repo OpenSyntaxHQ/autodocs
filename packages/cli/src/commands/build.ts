@@ -4,8 +4,6 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { Command } from 'commander';
 import { glob } from 'glob';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import fsPromises from 'fs/promises';
 import type { CompilerOptions, Diagnostic } from 'typescript';
 import { loadConfig, resolveConfigPaths } from '../config';
@@ -22,10 +20,22 @@ import {
   VERSION,
 } from '@opensyntaxhq/autodocs-core';
 
-const execAsync = promisify(exec);
-
 function toCompilerOptions(options?: Record<string, unknown>): CompilerOptions | undefined {
   return options ? (options as unknown as CompilerOptions) : undefined;
+}
+
+interface UiSourceCandidate {
+  label: string;
+  distDir: string;
+}
+
+async function pathExists(target: string): Promise<boolean> {
+  try {
+    await fsPromises.access(target);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 interface BuildOptions {
@@ -258,50 +268,49 @@ export async function buildReactUI(
     siteName?: string;
   }
 ): Promise<void> {
-  // Find the UI package using require.resolve - works in monorepo
-  let uiDir: string;
-  let uiDistDir: string;
+  const candidates: UiSourceCandidate[] = [];
+  const candidateDistDirs = new Set<string>();
+  const addCandidate = (candidate: UiSourceCandidate): void => {
+    if (candidateDistDirs.has(candidate.distDir)) {
+      return;
+    }
+    candidateDistDirs.add(candidate.distDir);
+    candidates.push(candidate);
+  };
 
   if (options.uiDir) {
-    uiDir = options.uiDir;
-    uiDistDir = path.join(uiDir, 'dist');
+    addCandidate({
+      label: `custom uiDir (${options.uiDir})`,
+      distDir: path.join(options.uiDir, 'dist'),
+    });
   } else {
-    try {
-      // Try to resolve the UI package from the monorepo
-      const uiPackageJson = require.resolve('@opensyntaxhq/autodocs-ui/package.json');
-      uiDir = path.dirname(uiPackageJson);
-      uiDistDir = path.join(uiDir, 'dist');
-    } catch {
-      // Fallback: resolve relative to CLI package in monorepo
-      uiDir = path.resolve(__dirname, '../../ui');
-      uiDistDir = path.join(uiDir, 'dist');
+    // Bundled UI assets are the primary source for published CLI packages.
+    addCandidate({
+      label: 'bundled CLI assets',
+      distDir: path.resolve(__dirname, '../ui-dist'),
+    });
+    addCandidate({
+      label: 'bundled CLI assets',
+      distDir: path.resolve(__dirname, '../../ui-dist'),
+    });
+  }
+
+  let selectedSource: UiSourceCandidate | null = null;
+  for (const candidate of candidates) {
+    if (await pathExists(candidate.distDir)) {
+      selectedSource = candidate;
+      break;
     }
   }
 
-  // Check if UI package exists
-  try {
-    await fsPromises.access(uiDir);
-  } catch {
-    // UI package not found, fall back to basic HTML
+  if (!selectedSource) {
     spinner.text = 'React UI not found, using basic HTML generator...';
     const { generateHtml } = await import('@opensyntaxhq/autodocs-core');
     await generateHtml(docs, outputDir);
     return;
   }
 
-  // Step 1: Build the React UI
-  spinner.text = 'Building React UI...';
-
-  try {
-    await execAsync('npm run build', { cwd: uiDir });
-  } catch {
-    spinner.fail(chalk.red('Failed to build React UI, falling back to basic HTML'));
-    const { generateHtml } = await import('@opensyntaxhq/autodocs-core');
-    await generateHtml(docs, outputDir);
-    return;
-  }
-
-  spinner.succeed(chalk.green('React UI built'));
+  spinner.succeed(chalk.green(`React UI ready (${selectedSource.label})`));
 
   // Step 2: Clean and create output directory
   spinner.start('Preparing output directory...');
@@ -310,9 +319,9 @@ export async function buildReactUI(
   await fsPromises.mkdir(outputDir, { recursive: true });
 
   // Step 3: Copy React UI assets
-  spinner.text = 'Copying UI assets...';
+  spinner.text = `Copying UI assets (${selectedSource.label})...`;
 
-  await copyDirectory(uiDistDir, outputDir);
+  await copyDirectory(selectedSource.distDir, outputDir);
 
   spinner.succeed(chalk.green('UI assets copied'));
 

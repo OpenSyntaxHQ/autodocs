@@ -27,10 +27,6 @@ jest.mock('../src/config', () => ({
   resolveConfigPaths: jest.fn(),
 }));
 
-jest.mock('child_process', () => ({
-  exec: jest.fn(),
-}));
-
 const pluginManagerInstances: Array<{ cleanup: jest.Mock; runHook: jest.Mock }> = [];
 
 jest.mock('@opensyntaxhq/autodocs-core', () => ({
@@ -53,7 +49,6 @@ jest.mock('@opensyntaxhq/autodocs-core', () => ({
 }));
 
 import { glob } from 'glob';
-import { ChildProcess, exec } from 'child_process';
 import { loadConfig, resolveConfigPaths } from '../src/config';
 import {
   createProgram,
@@ -66,8 +61,6 @@ import {
 import { loadPlugins, writeStaticDocs, buildReactUI, registerBuild } from '../src/commands/build';
 
 const globMock = glob as unknown as jest.MockedFunction<typeof glob>;
-const execMock = exec as unknown as jest.MockedFunction<typeof exec>;
-const createChildProcess = (): ChildProcess => ({ pid: 0 }) as ChildProcess;
 
 describe('build helpers', () => {
   beforeEach(() => {
@@ -253,17 +246,10 @@ describe('build helpers', () => {
     expect(generateHtml).toHaveBeenCalled();
   });
 
-  it('falls back to HTML generator when UI build fails', async () => {
+  it('falls back to HTML generator when custom uiDir has no dist folder', async () => {
     const tempDir = await createTempDir('autodocs-build-');
     const uiDir = path.join(tempDir, 'ui');
     await fs.mkdir(uiDir, { recursive: true });
-    execMock.mockImplementation((...args: Parameters<typeof exec>) => {
-      const cb = typeof args[1] === 'function' ? args[1] : args[2];
-      if (cb) {
-        cb(new Error('build failed'), '', '');
-      }
-      return createChildProcess();
-    });
 
     await buildReactUI(
       [
