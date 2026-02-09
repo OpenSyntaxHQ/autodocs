@@ -73,7 +73,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "author": "",
+  "author": "OpenSyntaxHQ",
   "license": "Apache-2.0",
   "type": "commonjs"
 }
