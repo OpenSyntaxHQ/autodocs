@@ -97,7 +97,7 @@ jobs:
           fail_ci_if_error: false
       - name: Upload docs artifact
         if: matrix.node-version == 20
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: docs-dist
           path: docs-dist
