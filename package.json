@@ -49,5 +49,16 @@
     "typescript-eslint": "^8.54.0",
     "v8-to-istanbul": "^9.3.0",
     "vitest": "^4.0.18"
+  },
+  "overrides": {
+    "minimatch": ">=3.1.4",
+    "glob": {
+      "minimatch": ">=3.1.4"
+    },
+    "rollup": ">=4.59.0",
+    "undici": ">=7.24.0",
+    "qs": ">=6.14.2",
+    "ajv": ">=6.14.0",
+    "flatted": ">=3.4.2"
   }
 }
