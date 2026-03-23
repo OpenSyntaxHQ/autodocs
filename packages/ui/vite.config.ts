@@ -40,9 +40,28 @@ export default defineConfig(({ mode }) => {
       },
       rollupOptions: {
         output: {
-          manualChunks: {
-            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-            search: ['flexsearch'],
+          /**
+           * Vite 8+ (rolldown) expects `manualChunks` to be a function.
+           */
+          manualChunks(id) {
+            const normalizedId = id.replaceAll('\\', '/');
+            const inNodeModules = normalizedId.includes('/node_modules/');
+            if (!inNodeModules) {
+              return;
+            }
+
+            const isNodeModulePackage = (pkgName: string): boolean =>
+              normalizedId.includes(`/node_modules/${pkgName}/`) ||
+              normalizedId.endsWith(`/node_modules/${pkgName}`);
+
+            const reactPackages = ['react', 'react-dom', 'react-router-dom'];
+            if (reactPackages.some(isNodeModulePackage)) {
+              return 'react-vendor';
+            }
+
+            if (isNodeModulePackage('flexsearch')) {
+              return 'search';
+            }
           },
         },
       },
