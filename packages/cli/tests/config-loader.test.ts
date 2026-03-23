@@ -31,6 +31,111 @@ describe('config loader', () => {
     expect(config?.output.dir).toBe('./docs');
   });
 
+  it('loads TypeScript config files', async () => {
+    const tempDir = await createTempDir();
+    const configPath = path.join(tempDir, 'autodocs.config.ts');
+    await fs.writeFile(
+      configPath,
+      `export default { include: ['src/**/*.ts'], output: { dir: './typed', format: 'json' } };`,
+      'utf-8'
+    );
+
+    const config = await loadConfig(tempDir);
+    expect(config).not.toBeNull();
+    expect(config?.output.dir).toBe('./typed');
+    expect(config?.output.format).toBe('json');
+  });
+
+  it('loads JSON config from an explicit config path', async () => {
+    const tempDir = await createTempDir();
+    const configPath = path.join(tempDir, 'autodocs.config.json');
+    await fs.writeFile(
+      configPath,
+      JSON.stringify({ include: ['lib/**/*.ts'], output: { dir: './explicit', format: 'json' } }),
+      'utf-8'
+    );
+
+    const config = await loadConfig(configPath);
+    expect(config).not.toBeNull();
+    expect(config?.include).toContain('lib/**/*.ts');
+    expect(config?.output.dir).toBe('./explicit');
+    expect(config?.output.format).toBe('json');
+  });
+
+  it('returns null when no config file exists', async () => {
+    const tempDir = await createTempDir();
+    const config = await loadConfig(tempDir);
+    expect(config).toBeNull();
+  });
+
+  it('falls back to manual JSON parsing when cosmiconfig returns null for explicit path', async () => {
+    const tempDir = await createTempDir();
+    const configPath = path.join(tempDir, 'autodocs.config.json');
+    await fs.writeFile(
+      configPath,
+      JSON.stringify({ output: { dir: './fallback-json', format: 'json' } }),
+      'utf-8'
+    );
+
+    await jest.isolateModulesAsync(async () => {
+      jest.doMock('cosmiconfig', () => ({
+        cosmiconfig: () => ({
+          search: jest.fn(),
+          load: jest.fn().mockResolvedValue(null),
+        }),
+      }));
+
+      const { loadConfig: isolatedLoadConfig } = await import('../src/config/loader');
+      const config = await isolatedLoadConfig(configPath);
+      expect(config).not.toBeNull();
+      expect(config?.output.dir).toBe('./fallback-json');
+      expect(config?.output.format).toBe('json');
+    });
+  });
+
+  it('falls back to jiti for explicit JS config when cosmiconfig returns null for explicit path', async () => {
+    const tempDir = await createTempDir();
+    const configPath = path.join(tempDir, 'autodocs.config.js');
+    await fs.writeFile(
+      configPath,
+      `module.exports = { output: { dir: './fallback-js', format: 'json' } };`,
+      'utf-8'
+    );
+
+    await jest.isolateModulesAsync(async () => {
+      jest.doMock('cosmiconfig', () => ({
+        cosmiconfig: () => ({
+          search: jest.fn(),
+          load: jest.fn().mockResolvedValue(null),
+        }),
+      }));
+
+      const { loadConfig: isolatedLoadConfig } = await import('../src/config/loader');
+      const config = await isolatedLoadConfig(configPath);
+      expect(config).not.toBeNull();
+      expect(config?.output.dir).toBe('./fallback-js');
+      expect(config?.output.format).toBe('json');
+    });
+  });
+
+  it('wraps loader errors with a clear message', async () => {
+    const tempDir = await createTempDir();
+
+    await jest.isolateModulesAsync(async () => {
+      jest.doMock('cosmiconfig', () => ({
+        cosmiconfig: () => ({
+          search: jest.fn().mockRejectedValue(new Error('broken loader')),
+          load: jest.fn(),
+        }),
+      }));
+
+      const { loadConfig: isolatedLoadConfig } = await import('../src/config/loader');
+      await expect(isolatedLoadConfig(tempDir)).rejects.toThrow(
+        'Failed to load config: broken loader'
+      );
+    });
+  });
+
   it('resolves relative paths', async () => {
     const tempDir = await createTempDir();
     const config = resolveConfigPaths(
