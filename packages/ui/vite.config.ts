@@ -44,20 +44,20 @@ export default defineConfig(({ mode }) => {
            * Vite 8+ (rolldown) expects `manualChunks` to be a function.
            */
           manualChunks(id) {
-            const inNodeModules = id.includes('node_modules/');
+            const inNodeModules = id.includes('/node_modules/');
             if (!inNodeModules) {
               return;
             }
 
             if (
-              id.includes('/react/') ||
-              id.includes('/react-dom/') ||
-              id.includes('/react-router-dom/')
+              id.includes('/node_modules/react/') ||
+              id.includes('/node_modules/react-dom/') ||
+              id.includes('/node_modules/react-router-dom/')
             ) {
               return 'react-vendor';
             }
 
-            if (id.includes('/flexsearch/')) {
+            if (id.includes('/node_modules/flexsearch/')) {
               return 'search';
             }
           },
