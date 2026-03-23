@@ -66,7 +66,7 @@ export class PluginManager {
       const exported = this.getModuleExport(module);
       return this.resolvePluginExport(exported);
     } catch (error) {
-      throw new Error(`Failed to load plugin ${packageName}: ${String(error)}`);
+      throw new Error(`Failed to load plugin ${packageName}: ${String(error)}`, { cause: error });
     }
   }
 
