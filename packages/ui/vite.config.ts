@@ -50,12 +50,16 @@ export default defineConfig(({ mode }) => {
               return;
             }
 
+            const isNodeModulePackage = (pkgName: string): boolean =>
+              normalizedId.includes(`/node_modules/${pkgName}/`) ||
+              normalizedId.endsWith(`/node_modules/${pkgName}`);
+
             const reactPackages = ['react', 'react-dom', 'react-router-dom'];
-            if (reactPackages.some((pkg) => normalizedId.includes(`/node_modules/${pkg}/`))) {
+            if (reactPackages.some(isNodeModulePackage)) {
               return 'react-vendor';
             }
 
-            if (normalizedId.includes('/node_modules/flexsearch/')) {
+            if (isNodeModulePackage('flexsearch')) {
               return 'search';
             }
           },
