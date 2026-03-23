@@ -68,7 +68,7 @@ describe('config loader', () => {
     expect(config).toBeNull();
   });
 
-  it('falls back to manual JSON parsing when explicit load returns empty', async () => {
+  it('falls back to manual JSON parsing when cosmiconfig returns null for explicit path', async () => {
     const tempDir = await createTempDir();
     const configPath = path.join(tempDir, 'autodocs.config.json');
     await fs.writeFile(
@@ -93,7 +93,7 @@ describe('config loader', () => {
     });
   });
 
-  it('falls back to jiti for explicit JS config when explorer returns empty', async () => {
+  it('falls back to jiti for explicit JS config when cosmiconfig returns null for explicit path', async () => {
     const tempDir = await createTempDir();
     const configPath = path.join(tempDir, 'autodocs.config.js');
     await fs.writeFile(
@@ -119,6 +119,8 @@ describe('config loader', () => {
   });
 
   it('wraps loader errors with a clear message', async () => {
+    const tempDir = await createTempDir();
+
     await jest.isolateModulesAsync(async () => {
       jest.doMock('cosmiconfig', () => ({
         cosmiconfig: () => ({
@@ -128,7 +130,7 @@ describe('config loader', () => {
       }));
 
       const { loadConfig: isolatedLoadConfig } = await import('../src/config/loader');
-      await expect(isolatedLoadConfig('/tmp')).rejects.toThrow(
+      await expect(isolatedLoadConfig(tempDir)).rejects.toThrow(
         'Failed to load config: broken loader'
       );
     });
