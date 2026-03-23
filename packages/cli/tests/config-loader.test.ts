@@ -31,6 +31,38 @@ describe('config loader', () => {
     expect(config?.output.dir).toBe('./docs');
   });
 
+  it('loads JSON config from an explicit config path', async () => {
+    const tempDir = await createTempDir();
+    const configPath = path.join(tempDir, 'autodocs.config.json');
+    await fs.writeFile(
+      configPath,
+      JSON.stringify({ include: ['lib/**/*.ts'], output: { dir: './explicit', format: 'json' } }),
+      'utf-8'
+    );
+
+    const config = await loadConfig(configPath);
+    expect(config).not.toBeNull();
+    expect(config?.include).toContain('lib/**/*.ts');
+    expect(config?.output.dir).toBe('./explicit');
+    expect(config?.output.format).toBe('json');
+  });
+
+  it('wraps loader errors with a clear message', async () => {
+    await jest.isolateModulesAsync(async () => {
+      jest.doMock('cosmiconfig', () => ({
+        cosmiconfig: () => ({
+          search: jest.fn().mockRejectedValue(new Error('broken loader')),
+          load: jest.fn(),
+        }),
+      }));
+
+      const { loadConfig: isolatedLoadConfig } = await import('../src/config/loader');
+      await expect(isolatedLoadConfig('/tmp')).rejects.toThrow(
+        'Failed to load config: broken loader'
+      );
+    });
+  });
+
   it('resolves relative paths', async () => {
     const tempDir = await createTempDir();
     const config = resolveConfigPaths(
