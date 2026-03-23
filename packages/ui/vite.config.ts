@@ -40,9 +40,18 @@ export default defineConfig(({ mode }) => {
       },
       rollupOptions: {
         output: {
-          manualChunks: {
-            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-            search: ['flexsearch'],
+          manualChunks(id) {
+            if (
+              id.includes('node_modules/react') ||
+              id.includes('node_modules/react-dom') ||
+              id.includes('node_modules/react-router-dom')
+            ) {
+              return 'react-vendor';
+            }
+
+            if (id.includes('node_modules/flexsearch')) {
+              return 'search';
+            }
           },
         },
       },
