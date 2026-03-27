@@ -32,7 +32,7 @@ jobs:
       - name: Merge E2E coverage
         run: node scripts/merge-e2e-coverage.js
       - name: Upload E2E coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage-e2e/lcov.info
